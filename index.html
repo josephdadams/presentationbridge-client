@@ -2,16 +2,351 @@
 <html>
 	<head>
 		<meta charset="utf-8">
-		<title>Electron boilerplate</title>
+		<title>Presentation Bridge Link</title>
+		<link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css">
 		<link rel="stylesheet" href="index.css">
+		<script>window.$ = window.jQuery = require('./node_modules/jquery/dist/jquery.min.js');</script>
+		<script src='node_modules/jquery/dist/jquery.min.js'></script>
+		<script src='node_modules/bootstrap/dist/js/bootstrap.min.js'></script>
+		<script>
+			
+			const ipc = require('electron').ipcRenderer;
+			const remote = require('electron').remote;
+			
+			const config = require('./config');
+
+			var propresenter_status = 'disconnected';
+
+			var plugin_midirelay_enabled = true;
+			var plugin_vista_enabled = true;
+			var plugin_http_enabled = true;
+			var plugin_companion_enabled = true;
+
+			//IPCs    
+			ipc.on('propresenter_status', function (event, status) {
+				let displayText = '';
+				propresenter_status = status;
+				switch(propresenter_status) {
+					case 'disconnected':
+						displayText = 'Disconnected.';
+						propresenter_disablefields(false);
+						break;
+					case 'reconnecting':
+						displayText = 'Connection Lost. Reconnecting...';
+						propresenter_disablefields(false);
+						break;
+					case 'open':
+						displayText = 'Open, Not Authenticated.';
+						break;
+					case 'authenticated':
+						displayText = 'Connected!';
+						propresenter_disablefields(true);
+						break;
+					case 'badpassword':
+						displayText = 'Incorrect Password.';
+						break;
+					case 'econnrefused':
+						displayText = 'Connection Refused. Is ProPresenter running and configured correctly?';
+						break;
+					default:
+						displayText = propresenter_status;
+						break;
+				}
+				$('#divProPresenterStatus').text(displayText);
+			});
+
+			$( document ).ready(function() {
+				$('#txtProPresenterIP').val(config.get('propresenterIP'));
+				$('#txtProPresenterPort').val(config.get('propresenterPort'));
+				$('#txtProPresenterPassword').val(config.get('propresenterPassword'));
+
+				$('#switchMidiRelay').prop('checked', config.get('plugin_midirelay'));
+				$('#txtMIDIRelayIP').val(config.get('midirelayIP'));
+				$('#txtMIDIRelayPort').val(config.get('midirelayPort'));
+				$('#txtMIDIRelayMIDIPort').val(config.get('midirelayMIDIPort'));
+
+				$('#switchVista').prop('checked', config.get('plugin_vista'));
+				$('#txtVistaIP').val(config.get('vistaIP'));
+				$('#txtVistaPort').val(config.get('vistaPort'));
+				$('#txtVistaMIDIPort').val(config.get('vistaMIDIPort'));
+
+				$('#switchHttp').prop('checked', config.get('plugin_http'));
+
+				$('#switchCompanion').prop('checked', config.get('plugin_companion'));
+				$('#txtCompanionIP').val(config.get('companionIP'));
+
+				ipc.send('propresenter_status');
+			});
+
+			function propresenter_connect() {
+				let propresenterIP = $('#txtProPresenterIP').val();
+				let propresenterPort = $('#txtProPresenterPort').val();
+				let propresenterPassword = $('#txtProPresenterPassword').val();
+
+				if (propresenter_status === 'authenticated') {
+					ipc.send('propresenter_disconnect');
+				}
+				else {
+					ipc.send('propresenter_connect', propresenterIP, propresenterPort, propresenterPassword);
+				}
+			}
+
+			function presentationbridge_connect() {
+				let presentationBridgeHost = $('#txtPresentationBridgeHost').val();
+				let presentationBridgePort = $('#txtPresentationBridgePort').val();
+				let presentationBridgeID = $('#txtPresentationBridgeID').val();
+				let presentationBridgePassword = $('#txtPresentationBridgePassword').val();
+
+				ipc.send('presentationbridge_conect', presentationBridgeHost, presentationBridgePort, presentationBridgeID, presentationBridgePassword);
+			}
+
+			function propresenter_disablefields(value) {
+				$('#txtProPresenterIP').prop('disabled', value);
+				$('#txtProPresenterPort').prop('disabled', value);
+				$('#txtProPresenterPassword').prop('disabled', value);
+
+				if (!value) {
+					//change the button to allow connecting
+					$('#btnProPresenterConnect').text('Connect');
+					$('#btnProPresenterConnect').removeClass('btn-danger');
+					$('#btnProPresenterConnect').addClass('btn-primary');
+				}
+				else {
+					//change the button to say disconnect
+					$('#btnProPresenterConnect').text('Disconnect');
+					$('#btnProPresenterConnect').removeClass('btn-primary');
+					$('#btnProPresenterConnect').addClass('btn-danger');
+				}
+			}
+
+			function plugin_enable(plugin) {
+				let enable = '';
+
+				switch(plugin) {
+					case 'midirelay':
+						enable = $('#switchMidiRelay').prop('checked');
+						break;
+					case 'vista':
+						enable = $('#switchVista').prop('checked');
+						break;
+					case 'http':
+						enable = $('#switchHttp').prop('checked');
+						break;
+					case 'companion':
+						enable = $('#switchCompanion').prop('checked');
+						break;
+					default:
+						break;
+				}
+
+				config.set('plugin_' + plugin, enable);
+				console.log(plugin, enable);
+			}
+
+			function save() {
+				config.set('midirelayIP', $('#txtMIDIRelayIP').val());
+				config.set('midirelayPort', $('#txtMIDIRelayPort').val());
+				config.set('midirelayMIDIPort', $('#txtMIDIRelayMIDIPort').val());
+
+				config.set('vistaIP', $('#txtVistaIP').val());
+				config.set('vistaPort', $('#txtVistaPort').val());
+				config.set('vistaMIDIPort', $('#txtVistaMIDIPort').val());
+
+				config.set('companionIP', $('#txtCompanionIP').val());
+			}
+		</script>
 	</head>
 	<body>
 		<div class="container">
 			<header>
-				<h1>Electron boilerplate</h1>
-				<p></p>
+				<h1>Presentation Bridge Link</h1>
 			</header>
-			<section class="main"></section>
+			<section>
+				<div class='row'>ProPresenter Settings:</div>
+				<div id='divProPresenterStatus'></div>
+				<div class='form-row'>
+					<div class='form-group col-md-6'>
+						<div class="input-group">
+							<div class="input-group-prepend">
+								<label class="input-group-text" for="txtProPresenterIP">IP Address</label>
+							</div>
+							<input type="text"  id='txtProPresenterIP' class='form-control' minlength="7" maxlength="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$">
+						</div>
+					</div>
+					<div class='form-group col-md-5'>
+						<div class="input-group">
+							<div class="input-group-prepend">
+								<label class="input-group-text" for="txtProPresenterPort">Stage Display Port</label>
+							</div>	
+							<input type='number' id='txtProPresenterPort' class='form-control'/>
+						</div>
+					</div>
+				</div>
+				<div class='form-row'>
+					<div class='form-group col-md-11'>
+						<div class="input-group">
+							<div class="input-group-prepend">
+								<label class="input-group-text" for="txtProPresenterPassword">Stage Display Password</label>
+							</div>
+							<input type='password' id='txtProPresenterPassword' class='form-control' />
+						</div>
+					</div>
+				</div>
+				<div class='form-row'>
+					<div class='form-group col-md-11'>
+						<button class='btn btn-primary' id='btnProPresenterConnect' onclick='propresenter_connect();'>Connect to ProPresenter</button>
+					</div>
+				</div>
+			</section>
+			<section>
+				<div class='row'>Presentation Bridge:</div>
+				<div class='form-row'>
+					<div class='form-group col-md-6'>
+						<div class="input-group">
+							<div class="input-group-prepend">
+								<label class="input-group-text" for="txtPresentationBridgeHost">Bridge Host</label>
+							</div>
+							<input type="text"  id='txtPresentationBridgeHost' class='form-control' minlength="7" maxlength="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$">
+						</div>
+					</div>
+					<div class='form-group col-md-5'>
+						<div class="input-group">
+							<div class="input-group-prepend">
+								<label class="input-group-text" for="txtPresentationBridgePort">Bridge Port</label>
+							</div>	
+							<input type='number' id='txtPresentationBridgePort' class='form-control'/>
+						</div>
+					</div>
+				</div>
+				<div class='form-row'>
+					<div class='form-group col-md-11'>
+						<div class="input-group">
+							<div class="input-group-prepend">
+								<label class="input-group-text" for="txtPresentationBridgeID">Bridge ID</label>
+							</div>
+							<input type='password' id='txtPresentationBridgeID' class='form-control' />
+						</div>
+					</div>
+				</div>
+				<div class='form-row'>
+					<div class='form-group col-md-11'>
+						<div class="input-group">
+							<div class="input-group-prepend">
+								<label class="input-group-text" for="txtPresentationBridgePassword">Bridge Password</label>
+							</div>
+							<input type='password' id='txtPresentationBridgePassword' class='form-control' />
+						</div>
+					</div>
+				</div>
+				<div class='form-row'>
+					<div class='form-group col-md-11'>
+						<button class='btn btn-primary' id='btnPresentationBridgeConnect' onclick='presentationbridge_connect();'>Connect to Presentation Bridge</button>
+					</div>
+				</div>
+			</section>
+			<section>
+				<div class='row'>
+					<div class="custom-control custom-switch">
+						<input type="checkbox" class="custom-control-input" id="switchMidiRelay" onClick="plugin_enable('midirelay');">
+						<label class="custom-control-label" for="switchMidiRelay">midi-relay</label>
+					  </div>
+				</div>
+				<div class='form-row'>
+					<div class='form-group col-md-6'>
+						<div class="input-group">
+							<div class="input-group-prepend">
+								<label class="input-group-text" for="txtMIDIRelayIP">IP</label>
+							</div>
+							<input type="text"  id='txtMIDIRelayIP' class='form-control' minlength="7" maxlength="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$">
+						</div>
+					</div>
+					<div class='form-group col-md-5'>
+						<div class="input-group">
+							<div class="input-group-prepend">
+								<label class="input-group-text" for="txtMIDIRelayPort">Port</label>
+							</div>	
+							<input type='number' id='txtMIDIRelayPort' class='form-control'/>
+						</div>
+					</div>
+				</div>
+				<div class='form-row'>
+					<div class='form-group col-md-11'>
+						<div class="input-group">
+							<div class="input-group-prepend">
+								<label class="input-group-text" for="txtMIDIRelayMIDIPort">MIDI Port</label>
+							</div>	
+							<input type='number' id='txtMIDIRelayMIDIPort' class='form-control'/>
+						</div>
+					</div>
+				</div>
+			</section>
+			<section>
+				<div class='row'>
+					<div class="custom-control custom-switch">
+						<input type="checkbox" class="custom-control-input" id="switchVista" onClick="plugin_enable('vista');">
+						<label class="custom-control-label" for="switchVista">Chroma-Q Vista (using midi-relay)</label>
+					  </div>
+				</div>
+				<div class='form-row'>
+					<div class='form-group col-md-6'>
+						<div class="input-group">
+							<div class="input-group-prepend">
+								<label class="input-group-text" for="txtVistaIP">IP</label>
+							</div>
+							<input type="text"  id='txtVistaIP' class='form-control' minlength="7" maxlength="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$">
+						</div>
+					</div>
+					<div class='form-group col-md-5'>
+						<div class="input-group">
+							<div class="input-group-prepend">
+								<label class="input-group-text" for="txtVistaPort">Port</label>
+							</div>	
+							<input type='number' id='txtVistaPort' class='form-control'/>
+						</div>
+					</div>
+				</div>
+				<div class='form-row'>
+					<div class='form-group col-md-11'>
+						<div class="input-group">
+							<div class="input-group-prepend">
+								<label class="input-group-text" for="txtVistaMIDIPort">MIDI Port</label>
+							</div>	
+							<input type='number' id='txtVistaMIDIPort' class='form-control'/>
+						</div>
+					</div>
+				</div>
+			</section>
+			<section>
+				<div class='row'>
+					<div class="custom-control custom-switch">
+						<input type="checkbox" class="custom-control-input" id="switchHttp" onClick="plugin_enable('http');">
+						<label class="custom-control-label" for="switchHttp">HTTP Requests</label>
+					  </div>
+				</div>
+			</section>
+			<section>
+				<div class='row'>
+					<div class="custom-control custom-switch">
+						<input type="checkbox" class="custom-control-input" id="switchCompanion" onClick="plugin_enable('companion');">
+						<label class="custom-control-label" for="switchCompanion">Companion</label>
+					  </div>
+				</div>
+				<div class='form-group col-md-6'>
+					<div class="input-group">
+						<div class="input-group-prepend">
+							<label class="input-group-text" for="txtCompanionIP">Companion IP</label>
+						</div>
+						<input type="text"  id='txtCompanionIP' class='form-control' minlength="7" maxlength="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$">
+					</div>
+				</div>
+			</section>
+			<section>
+				<div class='form-row'>
+					<div class='form-group col-md-11'>
+						<button class='btn btn-primary' id='btnSave' onclick='save();'>Save Settings</button>
+					</div>
+				</div>
+			</section>
 			<footer></footer>
 		</div>
 	</body>

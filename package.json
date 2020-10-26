@@ -1,14 +1,14 @@
 {
-	"name": "app-name",
-	"productName": "App Name",
-	"version": "0.0.0",
-	"description": "The best app ever",
+	"name": "presentationbridge-client",
+	"productName": "Presentation Bridge Client",
+	"version": "0.1.0",
+	"description": "Links data from your Presentation/lyrics software to other software.",
 	"license": "MIT",
-	"repository": "sindresorhus/electron-boilerplate",
+	"repository": "josephdadams/presentationbridge-client",
 	"author": {
-		"name": "Your Name",
-		"email": "user@gmail.com",
-		"url": "https://sindresorhus.com"
+		"name": "Joseph Adams",
+		"email": "josephdadams@gmail.com",
+		"url": "https://techministry.blog"
 	},
 	"scripts": {
 		"postinstall": "electron-builder install-app-deps",
@@ -20,12 +20,17 @@
 		"release": "np"
 	},
 	"dependencies": {
+		"axios": "^0.20.0",
+		"bootstrap": "^4.5.2",
 		"electron-context-menu": "^0.15.0",
 		"electron-debug": "^3.0.0",
 		"electron-store": "^5.1.0",
 		"electron-unhandled": "^3.0.0",
 		"electron-updater": "^4.0.6",
-		"electron-util": "^0.13.0"
+		"electron-util": "^0.13.0",
+		"jquery": "^3.5.1",
+		"socket.io-client": "^2.3.1",
+		"ws": "^7.3.1"
 	},
 	"devDependencies": {
 		"electron": "^7.1.1",
@@ -44,7 +49,7 @@
 		"releaseDraft": false
 	},
 	"build": {
-		"appId": "com.company.AppName",
+		"appId": "com.techministry.presentationbridgeclient",
 		"mac": {
 			"category": "public.app-category.social-networking",
 			"darkModeSupport": true
