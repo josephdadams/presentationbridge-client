@@ -1,7 +1,7 @@
 {
 	"name": "presentationbridge-client",
-	"productName": "Presentation Bridge Client",
-	"version": "0.1.0",
+	"productName": "PresentationBridge Client",
+	"version": "1.0.0",
 	"description": "Links data from your Presentation/lyrics software to other software.",
 	"license": "MIT",
 	"repository": "josephdadams/presentationbridge-client",
@@ -20,6 +20,7 @@
 		"release": "np"
 	},
 	"dependencies": {
+		"@popperjs/core": "^2.5.4",
 		"axios": "^0.20.0",
 		"bootstrap": "^4.5.2",
 		"electron-context-menu": "^0.15.0",
@@ -29,6 +30,7 @@
 		"electron-updater": "^4.0.6",
 		"electron-util": "^0.13.0",
 		"jquery": "^3.5.1",
+		"mdns-js": "^1.0.3",
 		"socket.io-client": "^2.3.1",
 		"ws": "^7.3.1"
 	},

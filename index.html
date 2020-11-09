@@ -7,6 +7,7 @@
 		<link rel="stylesheet" href="index.css">
 		<script>window.$ = window.jQuery = require('./node_modules/jquery/dist/jquery.min.js');</script>
 		<script src='node_modules/jquery/dist/jquery.min.js'></script>
+		<script src='node_modules/@popperjs/core/dist/umd/popper.js'></script>
 		<script src='node_modules/bootstrap/dist/js/bootstrap.min.js'></script>
 		<script>
 			
@@ -16,6 +17,10 @@
 			const config = require('./config');
 
 			var propresenter_status = 'disconnected';
+			var mdns_propresenter_hosts = [];
+			var mdns_midirelay_hosts = [];
+
+			var presentationbridge_status = 'disconnected';
 
 			var plugin_midirelay_enabled = true;
 			var plugin_vista_enabled = true;
@@ -27,13 +32,14 @@
 				let displayText = '';
 				propresenter_status = status;
 				switch(propresenter_status) {
-					case 'disconnected':
+					case 'force_disconnected':
 						displayText = 'Disconnected.';
 						propresenter_disablefields(false);
 						break;
+					case 'connecting':
 					case 'reconnecting':
-						displayText = 'Connection Lost. Reconnecting...';
-						propresenter_disablefields(false);
+						displayText = 'Reconnecting...';
+						propresenter_disablefields(true);
 						break;
 					case 'open':
 						displayText = 'Open, Not Authenticated.';
@@ -44,9 +50,11 @@
 						break;
 					case 'badpassword':
 						displayText = 'Incorrect Password.';
+						propresenter_disablefields(false);
 						break;
 					case 'econnrefused':
-						displayText = 'Connection Refused. Is ProPresenter running and configured correctly?';
+						displayText = 'Connection Refused. Is ProPresenter running and configured for network access?';
+						propresenter_disablefields(false);
 						break;
 					default:
 						displayText = propresenter_status;
@@ -55,10 +63,101 @@
 				$('#divProPresenterStatus').text(displayText);
 			});
 
+			ipc.on('mdns_propresenter_hosts', function(event, hosts) {
+				mdns_propresenter_hosts = hosts;
+				let htmlAppend = '';
+
+				console.log(mdns_propresenter_hosts);
+				for (let i = 0; i < mdns_propresenter_hosts.length; i++) {
+					htmlAppend += '<a class="badge badge-pill badge-secondary" href="#" onclick="propresenter_usemdns(\'' + mdns_propresenter_hosts[i].ip + '\',\'' + mdns_propresenter_hosts[i].port + '\');">' + mdns_propresenter_hosts[i].ip + ' (' + mdns_propresenter_hosts[i].port + ')</a>';					
+				}
+				$('#divProPresenterHosts').html(htmlAppend);
+			});
+
+			ipc.on('mdns_midirelay_hosts', function(event, hosts) {
+				mdns_midirelay_hosts = hosts;
+				let htmlAppend = '';
+
+				console.log(mdns_midirelay_hosts);
+				for (let i = 0; i < mdns_midirelay_hosts.length; i++) {
+					htmlAppend += '<a class="badge badge-pill badge-secondary" href="#" onclick="midirelay_usemdns(\'' + mdns_midirelay_hosts[i].ip + '\',\'' + mdns_midirelay_hosts[i].port + '\');">' + mdns_midirelay_hosts[i].ip + ' (' + mdns_midirelay_hosts[i].port + ')</a>';					
+				}
+				$('#divMidiRelayHosts').html(htmlAppend);
+			});
+
+			ipc.on('presentationbridge_status', function (event, status) {
+				let displayText = '';
+				presentationbridge_status = status;
+				switch(presentationbridge_status) {
+					case 'disconnected':
+						displayText = 'Disconnected.';
+						presentationbridge_disablefields(false);
+						break;
+					case 'connecting':
+						displayText = 'Connecting...';
+						presentationbridge_disablefields(true);
+						break;
+					case 'connected':
+						displayText = 'Connecting to server. Authenticating...';
+						presentationbridge_disablefields(true);
+						break;
+					case 'authenticated':
+						displayText = 'Connected!';
+						presentationbridge_disablefields(true);
+						break;
+					case 'badid':
+						displayText = 'Invalid Bridge ID.';
+						presentationbridge_disablefields(false);
+						break;
+					case 'badpassword':
+						displayText = 'Incorrect Bridge or Password.';
+						presentationbridge_disablefields(false);
+						break;
+					case 'inuse':
+						displayText = 'This Bridge is already in use elsewhere.';
+						presentationbridge_disablefields(false);
+						break;
+					case 'econnrefused':
+						displayText = 'Connection Refused. Is Presentation Bridge running on the server?';
+						presentationbridge_disablefields(false);
+						break;
+					case 'etimedout':
+						displayText = 'Connection Timed Out. Is Presentation Bridge running on the server?';
+						presentationbridge_disablefields(false);
+						break;
+					default:
+						displayText = presentationbridge_status;
+						break;
+				}
+				$('#divPresentationBridgeStatus').text(displayText);
+			});
+
+			ipc.on('cs', function(event, cs) {
+
+				$('#divCurrentSlide').html(cs.replace(/\n/g, '<br />'));
+			});
+
+			ipc.on('csn', function(event, csn) {
+				processSlideNotes('csn', csn);
+			});
+
+			ipc.on('ns', function(event, ns) {
+				$('#divNextSlide').html(ns.replace(/\n/g, '<br />'));
+			});
+
+			ipc.on('nsn', function(event, nsn) {
+				processSlideNotes('nsn', nsn);
+			});
+
 			$( document ).ready(function() {
 				$('#txtProPresenterIP').val(config.get('propresenterIP'));
 				$('#txtProPresenterPort').val(config.get('propresenterPort'));
 				$('#txtProPresenterPassword').val(config.get('propresenterPassword'));
+
+				$('#txtPresentationBridgeHost').val(config.get('presentationbridgeHost'));
+				$('#txtPresentationBridgePort').val(config.get('presentationbridgePort'));
+				$('#txtPresentationBridgeID').val(config.get('presentationbridgeID'));
+				$('#txtPresentationBridgePassword').val(config.get('presentationbridgePassword'));
 
 				$('#switchMidiRelay').prop('checked', config.get('plugin_midirelay'));
 				$('#txtMIDIRelayIP').val(config.get('midirelayIP'));
@@ -76,6 +175,8 @@
 				$('#txtCompanionIP').val(config.get('companionIP'));
 
 				ipc.send('propresenter_status');
+				ipc.send('mdns_propresenter_hosts');
+				ipc.send('mdns_midirelay_hosts');
 			});
 
 			function propresenter_connect() {
@@ -87,17 +188,33 @@
 					ipc.send('propresenter_disconnect');
 				}
 				else {
-					ipc.send('propresenter_connect', propresenterIP, propresenterPort, propresenterPassword);
+					config.set('propresenterIP', propresenterIP);
+					config.set('propresenterPort', propresenterPort);
+					config.set('propresenterPassword', propresenterPassword);
+					ipc.send('propresenter_connect');
 				}
 			}
 
 			function presentationbridge_connect() {
-				let presentationBridgeHost = $('#txtPresentationBridgeHost').val();
-				let presentationBridgePort = $('#txtPresentationBridgePort').val();
-				let presentationBridgeID = $('#txtPresentationBridgeID').val();
-				let presentationBridgePassword = $('#txtPresentationBridgePassword').val();
+				let presentationbridgeHost = $('#txtPresentationBridgeHost').val();
+				let presentationbridgePort = $('#txtPresentationBridgePort').val();
+				let presentationbridgeID = $('#txtPresentationBridgeID').val();
+				let presentationbridgePassword = $('#txtPresentationBridgePassword').val();
 
-				ipc.send('presentationbridge_conect', presentationBridgeHost, presentationBridgePort, presentationBridgeID, presentationBridgePassword);
+				if (presentationbridge_status === 'authenticated') {
+					ipc.send('presentationbridge_disconnect');
+				}
+				else {
+					config.set('presentationbridgeHost', presentationbridgeHost);
+					config.set('presentationbridgePort', presentationbridgePort);
+					config.set('presentationbridgeID', presentationbridgeID);
+					config.set('presentationbridgePassword', presentationbridgePassword);
+					ipc.send('presentationbridge_connect');
+				}
+			}
+
+			function propresenter_disconnect() {
+				ipc.send('propresenter_disconnect');
 			}
 
 			function propresenter_disablefields(value) {
@@ -116,6 +233,37 @@
 					$('#btnProPresenterConnect').text('Disconnect');
 					$('#btnProPresenterConnect').removeClass('btn-primary');
 					$('#btnProPresenterConnect').addClass('btn-danger');
+				}
+			}
+
+			function propresenter_usemdns(ip, port) {
+				propresenter_disconnect();
+				$('#txtProPresenterIP').val(ip);
+				$('#txtProPresenterPort').val(port);
+			}
+
+			function midirelay_usemdns(ip, port) {
+				$('#txtMIDIRelayIP').val(ip);
+				$('#txtMIDIRelayPort').val(port);
+			}
+
+			function presentationbridge_disablefields(value) {
+				$('#txtPresentationBridgeHost').prop('disabled', value);
+				$('#txtPresentationBridgePort').prop('disabled', value);
+				$('#txtPresentationBridgeID').prop('disabled', value);
+				$('#txtPresentationBridgePassword').prop('disabled', value);
+
+				if (!value) {
+					//change the button to allow connecting
+					$('#btnPresentationBridgeConnect').text('Connect');
+					$('#btnPresentationBridgeConnect').removeClass('btn-danger');
+					$('#btnPresentationBridgeConnect').addClass('btn-primary');
+				}
+				else {
+					//change the button to say disconnect
+					$('#btnPresentationBridgeConnect').text('Disconnect');
+					$('#btnPresentationBridgeConnect').removeClass('btn-primary');
+					$('#btnPresentationBridgeConnect').addClass('btn-danger');
 				}
 			}
 
@@ -154,6 +302,186 @@
 
 				config.set('companionIP', $('#txtCompanionIP').val());
 			}
+
+			function processSlideNotes(type, text) {
+				switch(type) {
+					case 'csn':
+						$('#divCurrentSlideNotes').html('');
+						break;
+					case 'nsn':
+						$('#divNextSlideNotes').html('');
+						break;
+				}
+
+				if (text !== '') {
+					console.log('Stage Display Message: ' + text);
+					if (text.indexOf(':') > -1) {
+						let commands = text.split(';');
+						for (let i = 0; i < commands.length; i++) {
+							let command = text.substring(0, text.indexOf(':')).toLowerCase();
+							console.log('Command: ' + command);
+							let parameters = text.substring(text.indexOf(':')+1).split(',');
+							console.log('Parameters: ' + parameters);
+					
+							let commandObj = {};
+					
+							if (parameters) {
+								switch(command) {
+									case 'noteon':
+										//"noteon:0,55,100" Note On Command, Channel 1 (zero based), Note 55, Velocity 100
+										commandObj.midiport = config.get('midirelayMIDIPort');
+										commandObj.midicommand = 'noteon';
+										commandObj.channel = parameters[0];
+										commandObj.note = parameters[1];
+										commandObj.velocity = parameters[2];
+										buildPill(command, commandObj, type);
+										break;
+									case 'noteoff':
+										//"noteoff:0,55,0" Note Off Command, Channel 1 (zero based), Note 55, Velocity 0
+										commandObj.midiport = config.get('midirelayMIDIPort');
+										commandObj.midicommand = 'noteoff';
+										commandObj.channel = parameters[0];
+										commandObj.note = parameters[1];
+										commandObj.velocity = parameters[2];
+										buildPill(command, commandObj, type);
+										break;
+									case 'aftertouch':
+										//"aftertouch:0,55,100" Polyphonic Aftertouch Command, Channel 1 (zero based), Note 55, Value 100
+										commandObj.midiport = config.get('midirelayMIDIPort');
+										commandObj.midicommand = 'aftertouch';
+										commandObj.channel = parameters[0];
+										commandObj.note = parameters[1];
+										commandObj.value = parameters[2];
+										buildPill(command, commandObj, type);
+										break;
+									case 'cc':
+										//"cc:0,32,100" CC (Controller Change) Command, Channel 1 (zero based), Controller 32, Value 100
+										commandObj.midiport = config.get('midirelayMIDIPort');
+										commandObj.midicommand = 'cc';
+										commandObj.channel = parameters[0];
+										commandObj.note = parameters[1];
+										commandObj.value = parameters[2];
+										buildPill(command, commandObj, type);
+										break;
+									case 'pc':
+										//"pc:0,100" PC (Program Change) Command, Channel 1 (zero based), Value 100
+										commandObj.midiport = config.get('midirelayMIDIPort');
+										commandObj.midicommand = 'pc';
+										commandObj.channel = parameters[0];
+										commandObj.value = parameters[1];
+										buildPill(command, commandObj, type);
+										break;
+									case 'pressure':
+										//"pressure:0,100" Channel Pressure / Aftertouch Command, Channel 1 (zero based), Value 100
+										commandObj.midiport = config.get('midirelayMIDIPort');
+										commandObj.midicommand = 'pressure';
+										commandObj.channel = parameters[0];
+										commandObj.value = parameters[1];
+										buildPill(command, commandObj, type);
+										break;
+									case 'pitchbend':
+										//"pitchbend:0,100" Pitchbend Command, Channel 1 (zero based), Value 100
+										commandObj.midiport = config.get('midirelayMIDIPort');
+										commandObj.midicommand = 'pitchbend';
+										commandObj.channel = parameters[0];
+										commandObj.value = parameters[1];
+										buildPill(command, commandObj, type);
+										break;
+									case 'msc':
+										//"msc:0,lighting.general,go,1,12,," MSC Command, Device ID 0, Command Format lighting.general, Cue 1, Cuelist 12, Cue Path blank
+										commandObj.midiport = config.get('midirelayMIDIPort');
+										commandObj.midicommand = 'msc';
+										commandObj.deviceid = parameters[0];
+										commandObj.commandformat = parameters[1];
+										commandObj.command = parameters[2];
+										commandObj.cue = parameters[3];
+										commandObj.cuelist = parameters[4];
+										commandObj.cuepath = parameters[5];
+										buildPill(command, commandObj, type);
+										break;
+									case 'sysex':
+										//"sysex;0xF0,0x41,0x10,0x00,0x00,0x00,0x20,0x12,0x71,0x00,0x08,0x00,0x07,0xF7" SysEx Command, Hexadecimal or Decimal format
+										commandObj.midiport = config.get('midirelayMIDIPort');
+										commandObj.midicommand = 'sysex';
+										commandObj.message = parameters[0];
+										buildPill(command, commandObj, type);
+										break;
+									case 'vista':
+										//"vista:12,1" Vista MSC Command, Cuelist 12, Cue 1
+										commandObj.midiport = config.get('vistaMIDIPort');
+										commandObj.midicommand = 'msc';
+										commandObj.deviceid = '0';
+										commandObj.commandformat = 'lighting.general';
+										commandObj.command = 'go';
+										commandObj.cue = parameters[1];
+										commandObj.cuelist = parameters[0];
+										commandObj.cuepath = '';
+										buildPill(command, commandObj, type);
+										break;
+									case 'http':
+										//"http:post,url,{json}"
+										//"http:get,url"
+										//"http:url"
+										if (parameters[0] === 'POST') {
+											commandObj.type = 'POST';
+											commandObj.url = parameters[1];
+											if (parameters[2]) {
+												commandObj.data = parameters[2];
+											}
+										}
+										else if (parameters[0] === 'GET') {
+											commandObj.type = 'GET';
+											commandObj.url = parameters[1];
+										}
+										else {
+											commandObj.type = 'GET';
+											commandObj.url = parameters[0];
+										}
+										buildPill(command, commandObj, type);
+										break;
+									case 'companion':
+										//"companion:1,2"
+										commandObj.bank = parameters[0];
+										commandObj.button = parameters[1];
+										buildPill(command, commandObj, type);
+										break;
+									default:
+										commandObj.text = 'Invalid Command';
+										buildPill(command, commandObj, type);
+										break;
+								}
+							}
+						}
+					}
+				}
+			}
+
+			function buildPill(command, obj, type) {
+				let htmlAppend = '';
+
+				switch(command) {
+					case 'noteon':
+						break;
+					case 'vista':
+						htmlAppend = '<span class="badge badge-pill badge-primary" data-toggle="tooltip" data-placement="bottom" title="Tooltip on bottom">Vista</span>';
+						break;
+					default:
+						break;
+				}
+
+				switch(type) {
+					case 'csn':
+						$('#divCurrentSlideNotes').append(htmlAppend);
+						break;
+					case 'nsn':
+						$('#divNextSlideNotes').append(htmlAppend);
+						break;
+				}
+			}
+
+			$(function () {
+				$('[data-toggle="tooltip"]').tooltip()
+			});
 		</script>
 	</head>
 	<body>
@@ -161,192 +489,221 @@
 			<header>
 				<h1>Presentation Bridge Link</h1>
 			</header>
-			<section>
-				<div class='row'>ProPresenter Settings:</div>
-				<div id='divProPresenterStatus'></div>
-				<div class='form-row'>
-					<div class='form-group col-md-6'>
-						<div class="input-group">
-							<div class="input-group-prepend">
-								<label class="input-group-text" for="txtProPresenterIP">IP Address</label>
+			<div class='row'>
+				<div class='col-sm'>
+					<section>
+						<div class='row'>ProPresenter Settings:</div>
+						<div class='form-row'>
+							<div class='form-group col-md-11' id='divProPresenterHosts'>
+
 							</div>
-							<input type="text"  id='txtProPresenterIP' class='form-control' minlength="7" maxlength="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$">
 						</div>
-					</div>
-					<div class='form-group col-md-5'>
-						<div class="input-group">
-							<div class="input-group-prepend">
-								<label class="input-group-text" for="txtProPresenterPort">Stage Display Port</label>
-							</div>	
-							<input type='number' id='txtProPresenterPort' class='form-control'/>
-						</div>
-					</div>
-				</div>
-				<div class='form-row'>
-					<div class='form-group col-md-11'>
-						<div class="input-group">
-							<div class="input-group-prepend">
-								<label class="input-group-text" for="txtProPresenterPassword">Stage Display Password</label>
+						<div id='divProPresenterStatus'></div>
+						<div class='form-row'>
+							<div class='form-group col-md-6'>
+								<div class="input-group">
+									<div class="input-group-prepend">
+										<label class="input-group-text" for="txtProPresenterIP">IP</label>
+									</div>
+									<input type="text"  id='txtProPresenterIP' class='form-control' minlength="7" maxlength="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$">
+								</div>
 							</div>
-							<input type='password' id='txtProPresenterPassword' class='form-control' />
 						</div>
-					</div>
-				</div>
-				<div class='form-row'>
-					<div class='form-group col-md-11'>
-						<button class='btn btn-primary' id='btnProPresenterConnect' onclick='propresenter_connect();'>Connect to ProPresenter</button>
-					</div>
-				</div>
-			</section>
-			<section>
-				<div class='row'>Presentation Bridge:</div>
-				<div class='form-row'>
-					<div class='form-group col-md-6'>
-						<div class="input-group">
-							<div class="input-group-prepend">
-								<label class="input-group-text" for="txtPresentationBridgeHost">Bridge Host</label>
+						<div class='form-row'>
+							<div class='form-group col-md-11'>
+								<div class="input-group">
+									<div class="input-group-prepend">
+										<label class="input-group-text" for="txtProPresenterPort">Stage Display Port</label>
+									</div>	
+									<input type='number' id='txtProPresenterPort' class='form-control'/>
+								</div>
 							</div>
-							<input type="text"  id='txtPresentationBridgeHost' class='form-control' minlength="7" maxlength="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$">
 						</div>
-					</div>
-					<div class='form-group col-md-5'>
-						<div class="input-group">
-							<div class="input-group-prepend">
-								<label class="input-group-text" for="txtPresentationBridgePort">Bridge Port</label>
-							</div>	
-							<input type='number' id='txtPresentationBridgePort' class='form-control'/>
-						</div>
-					</div>
-				</div>
-				<div class='form-row'>
-					<div class='form-group col-md-11'>
-						<div class="input-group">
-							<div class="input-group-prepend">
-								<label class="input-group-text" for="txtPresentationBridgeID">Bridge ID</label>
+						<div class='form-row'>
+							<div class='form-group col-md-11'>
+								<div class="input-group">
+									<div class="input-group-prepend">
+										<label class="input-group-text" for="txtProPresenterPassword">Stage Display Password</label>
+									</div>
+									<input type='password' id='txtProPresenterPassword' class='form-control' />
+								</div>
 							</div>
-							<input type='password' id='txtPresentationBridgeID' class='form-control' />
 						</div>
-					</div>
-				</div>
-				<div class='form-row'>
-					<div class='form-group col-md-11'>
-						<div class="input-group">
-							<div class="input-group-prepend">
-								<label class="input-group-text" for="txtPresentationBridgePassword">Bridge Password</label>
+						<div class='form-row'>
+							<div class='form-group col-md-11'>
+								<button class='btn btn-primary' id='btnProPresenterConnect' onclick='propresenter_connect();'>Connect to ProPresenter</button>
 							</div>
-							<input type='password' id='txtPresentationBridgePassword' class='form-control' />
 						</div>
-					</div>
-				</div>
-				<div class='form-row'>
-					<div class='form-group col-md-11'>
-						<button class='btn btn-primary' id='btnPresentationBridgeConnect' onclick='presentationbridge_connect();'>Connect to Presentation Bridge</button>
-					</div>
-				</div>
-			</section>
-			<section>
-				<div class='row'>
-					<div class="custom-control custom-switch">
-						<input type="checkbox" class="custom-control-input" id="switchMidiRelay" onClick="plugin_enable('midirelay');">
-						<label class="custom-control-label" for="switchMidiRelay">midi-relay</label>
-					  </div>
-				</div>
-				<div class='form-row'>
-					<div class='form-group col-md-6'>
-						<div class="input-group">
-							<div class="input-group-prepend">
-								<label class="input-group-text" for="txtMIDIRelayIP">IP</label>
+					</section>
+					<section>
+						<div class='row'>Presentation Bridge:</div>
+						<div id='divPresentationBridgeStatus'></div>
+						<div class='form-row'>
+							<div class='form-group col-md-6'>
+								<div class="input-group">
+									<div class="input-group-prepend">
+										<label class="input-group-text" for="txtPresentationBridgeHost">Bridge Host</label>
+									</div>
+									<input type="text"  id='txtPresentationBridgeHost' class='form-control' minlength="7" maxlength="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$">
+								</div>
 							</div>
-							<input type="text"  id='txtMIDIRelayIP' class='form-control' minlength="7" maxlength="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$">
-						</div>
-					</div>
-					<div class='form-group col-md-5'>
-						<div class="input-group">
-							<div class="input-group-prepend">
-								<label class="input-group-text" for="txtMIDIRelayPort">Port</label>
-							</div>	
-							<input type='number' id='txtMIDIRelayPort' class='form-control'/>
-						</div>
-					</div>
-				</div>
-				<div class='form-row'>
-					<div class='form-group col-md-11'>
-						<div class="input-group">
-							<div class="input-group-prepend">
-								<label class="input-group-text" for="txtMIDIRelayMIDIPort">MIDI Port</label>
-							</div>	
-							<input type='number' id='txtMIDIRelayMIDIPort' class='form-control'/>
-						</div>
-					</div>
-				</div>
-			</section>
-			<section>
-				<div class='row'>
-					<div class="custom-control custom-switch">
-						<input type="checkbox" class="custom-control-input" id="switchVista" onClick="plugin_enable('vista');">
-						<label class="custom-control-label" for="switchVista">Chroma-Q Vista (using midi-relay)</label>
-					  </div>
-				</div>
-				<div class='form-row'>
-					<div class='form-group col-md-6'>
-						<div class="input-group">
-							<div class="input-group-prepend">
-								<label class="input-group-text" for="txtVistaIP">IP</label>
+							<div class='form-group col-md-5'>
+								<div class="input-group">
+									<div class="input-group-prepend">
+										<label class="input-group-text" for="txtPresentationBridgePort">Bridge Port</label>
+									</div>	
+									<input type='number' id='txtPresentationBridgePort' class='form-control'/>
+								</div>
 							</div>
-							<input type="text"  id='txtVistaIP' class='form-control' minlength="7" maxlength="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$">
 						</div>
-					</div>
-					<div class='form-group col-md-5'>
-						<div class="input-group">
-							<div class="input-group-prepend">
-								<label class="input-group-text" for="txtVistaPort">Port</label>
-							</div>	
-							<input type='number' id='txtVistaPort' class='form-control'/>
+						<div class='form-row'>
+							<div class='form-group col-md-11'>
+								<div class="input-group">
+									<div class="input-group-prepend">
+										<label class="input-group-text" for="txtPresentationBridgeID">Bridge ID</label>
+									</div>
+									<input type='text' id='txtPresentationBridgeID' class='form-control' />
+								</div>
+							</div>
 						</div>
-					</div>
-				</div>
-				<div class='form-row'>
-					<div class='form-group col-md-11'>
-						<div class="input-group">
-							<div class="input-group-prepend">
-								<label class="input-group-text" for="txtVistaMIDIPort">MIDI Port</label>
-							</div>	
-							<input type='number' id='txtVistaMIDIPort' class='form-control'/>
+						<div class='form-row'>
+							<div class='form-group col-md-11'>
+								<div class="input-group">
+									<div class="input-group-prepend">
+										<label class="input-group-text" for="txtPresentationBridgePassword">Bridge Password</label>
+									</div>
+									<input type='password' id='txtPresentationBridgePassword' class='form-control' />
+								</div>
+							</div>
 						</div>
-					</div>
-				</div>
-			</section>
-			<section>
-				<div class='row'>
-					<div class="custom-control custom-switch">
-						<input type="checkbox" class="custom-control-input" id="switchHttp" onClick="plugin_enable('http');">
-						<label class="custom-control-label" for="switchHttp">HTTP Requests</label>
-					  </div>
-				</div>
-			</section>
-			<section>
-				<div class='row'>
-					<div class="custom-control custom-switch">
-						<input type="checkbox" class="custom-control-input" id="switchCompanion" onClick="plugin_enable('companion');">
-						<label class="custom-control-label" for="switchCompanion">Companion</label>
-					  </div>
-				</div>
-				<div class='form-group col-md-6'>
-					<div class="input-group">
-						<div class="input-group-prepend">
-							<label class="input-group-text" for="txtCompanionIP">Companion IP</label>
+						<div class='form-row'>
+							<div class='form-group col-md-11'>
+								<button class='btn btn-primary' id='btnPresentationBridgeConnect' onclick='presentationbridge_connect();'>Connect to Presentation Bridge</button>
+							</div>
 						</div>
-						<input type="text"  id='txtCompanionIP' class='form-control' minlength="7" maxlength="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$">
-					</div>
+					</section>
+					<section>
+						<div class='row'>
+							<div class="custom-control custom-switch">
+								<input type="checkbox" class="custom-control-input" id="switchMidiRelay" onClick="plugin_enable('midirelay');">
+								<label class="custom-control-label" for="switchMidiRelay">midi-relay</label>
+							  </div>
+						</div>
+						<div class='form-row'>
+							<div class='form-group col-md-11' id='divMidiRelayHosts'>
+
+							</div>
+						</div>
+						<div class='form-row'>
+							<div class='form-group col-md-6'>
+								<div class="input-group">
+									<div class="input-group-prepend">
+										<label class="input-group-text" for="txtMIDIRelayIP">IP</label>
+									</div>
+									<input type="text"  id='txtMIDIRelayIP' class='form-control' minlength="7" maxlength="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$">
+								</div>
+							</div>
+							<div class='form-group col-md-5'>
+								<div class="input-group">
+									<div class="input-group-prepend">
+										<label class="input-group-text" for="txtMIDIRelayPort">Port</label>
+									</div>	
+									<input type='number' id='txtMIDIRelayPort' class='form-control'/>
+								</div>
+							</div>
+						</div>
+						<div class='form-row'>
+							<div class='form-group col-md-11'>
+								<div class="input-group">
+									<div class="input-group-prepend">
+										<label class="input-group-text" for="txtMIDIRelayMIDIPort">MIDI Port</label>
+									</div>	
+									<input type='text' id='txtMIDIRelayMIDIPort' class='form-control'/>
+								</div>
+							</div>
+						</div>
+					</section>
+					<section>
+						<div class='row'>
+							<div class="custom-control custom-switch">
+								<input type="checkbox" class="custom-control-input" id="switchVista" onClick="plugin_enable('vista');">
+								<label class="custom-control-label" for="switchVista">Chroma-Q Vista (using midi-relay)</label>
+							  </div>
+						</div>
+						<div class='form-row'>
+							<div class='form-group col-md-6'>
+								<div class="input-group">
+									<div class="input-group-prepend">
+										<label class="input-group-text" for="txtVistaIP">IP</label>
+									</div>
+									<input type="text"  id='txtVistaIP' class='form-control' minlength="7" maxlength="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$">
+								</div>
+							</div>
+							<div class='form-group col-md-5'>
+								<div class="input-group">
+									<div class="input-group-prepend">
+										<label class="input-group-text" for="txtVistaPort">Port</label>
+									</div>	
+									<input type='number' id='txtVistaPort' class='form-control'/>
+								</div>
+							</div>
+						</div>
+						<div class='form-row'>
+							<div class='form-group col-md-11'>
+								<div class="input-group">
+									<div class="input-group-prepend">
+										<label class="input-group-text" for="txtVistaMIDIPort">MIDI Port</label>
+									</div>	
+									<input type='text' id='txtVistaMIDIPort' class='form-control'/>
+								</div>
+							</div>
+						</div>
+					</section>
+					<section>
+						<div class='row'>
+							<div class="custom-control custom-switch">
+								<input type="checkbox" class="custom-control-input" id="switchHttp" onClick="plugin_enable('http');">
+								<label class="custom-control-label" for="switchHttp">HTTP Requests</label>
+							  </div>
+						</div>
+					</section>
+					<section>
+						<div class='row'>
+							<div class="custom-control custom-switch">
+								<input type="checkbox" class="custom-control-input" id="switchCompanion" onClick="plugin_enable('companion');">
+								<label class="custom-control-label" for="switchCompanion">Companion</label>
+							  </div>
+						</div>
+						<div class='row'>
+							<div class='form-group col-md-11'>
+								<div class="input-group">
+									<div class="input-group-prepend">
+										<label class="input-group-text" for="txtCompanionIP">Companion IP</label>
+									</div>
+									<input type="text"  id='txtCompanionIP' class='form-control' minlength="7" maxlength="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$">
+								</div>
+							</div>
+						</div>
+					</section>
+					<section>
+						<div class='form-row'>
+							<div class='form-group col-md-11'>
+								<button class='btn btn-primary' id='btnSave' onclick='save();'>Save Settings</button>
+							</div>
+						</div>
+					</section>
 				</div>
-			</section>
-			<section>
-				<div class='form-row'>
-					<div class='form-group col-md-11'>
-						<button class='btn btn-primary' id='btnSave' onclick='save();'>Save Settings</button>
-					</div>
+				<div class='col-sm'>
+					<div class='row'><b>Current Slide:</b></div>
+					<div class='row' style='height: 150px;border: #eeeeee 1px solid;' id='divCurrentSlide'></div>
+					<div class='row'><b>Current Slide Notes:</b></div>
+					<div class='row' id='divCurrentSlideNotes'></div>
+					<div class='row'><b>Next Slide:</b></div>
+					<div class='row' style='height: 150px;border: #eeeeee 1px solid;' id='divNextSlide'><b>Next Slide:</b></div>
+					<div class='row'><b>Next Slide Notes:</b></div>
+					<div class='row' id='divNextSlideNotes'></div>
 				</div>
-			</section>
+			</div>
 			<footer></footer>
 		</div>
 	</body>
