@@ -2,19 +2,23 @@
 <html>
 	<head>
 		<meta charset="utf-8">
-		<title>Presentation Bridge Link</title>
+		<title>PresentationBridge Client</title>
 		<link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css">
 		<link rel="stylesheet" href="index.css">
 		<script>window.$ = window.jQuery = require('./node_modules/jquery/dist/jquery.min.js');</script>
 		<script src='node_modules/jquery/dist/jquery.min.js'></script>
-		<script src='node_modules/@popperjs/core/dist/umd/popper.js'></script>
-		<script src='node_modules/bootstrap/dist/js/bootstrap.min.js'></script>
+		<script src='node_modules/bootstrap/dist/js/bootstrap.bundle.js'></script>
 		<script>
 			
 			const ipc = require('electron').ipcRenderer;
 			const remote = require('electron').remote;
 			
 			const config = require('./config');
+
+			const marked = require("marked");
+			const helpFile = './help.md';
+
+			const fs = require('fs')
 
 			var propresenter_status = 'disconnected';
 			var mdns_propresenter_hosts = [];
@@ -33,43 +37,69 @@
 				propresenter_status = status;
 				switch(propresenter_status) {
 					case 'force_disconnected':
-						displayText = 'Disconnected.';
+						displayText = 'Connect';
+						$('#divProPresenterStatus').text('Disconnected.');
 						propresenter_disablefields(false);
+						$('#btnProPresenterConnect').removeClass('btn-primary btn-danger btn-warning');
+						$('#btnProPresenterConnect').addClass('btn-primary');
 						break;
 					case 'connecting':
+						displayText = 'Connecting...';
+						propresenter_disablefields(true);
+						$('#btnProPresenterConnect').removeClass('btn-primary btn-warning btn-danger');
+						$('#btnProPresenterConnect').addClass('btn-warning');
+						break;
 					case 'reconnecting':
 						displayText = 'Reconnecting...';
 						propresenter_disablefields(true);
+						$('#btnProPresenterConnect').removeClass('btn-primary btn-warning btn-danger');
+						$('#btnProPresenterConnect').addClass('btn-warning');
 						break;
 					case 'open':
 						displayText = 'Open, Not Authenticated.';
+						$('#btnProPresenterConnect').removeClass('btn-primary btn-warning btn-danger');
+						$('#btnProPresenterConnect').addClass('btn-warning');
 						break;
 					case 'authenticated':
-						displayText = 'Connected!';
+						displayText = 'Disconnect';
 						propresenter_disablefields(true);
+						$('#btnProPresenterConnect').removeClass('btn-primary btn-warning btn-danger');
+						$('#btnProPresenterConnect').addClass('btn-danger');
 						break;
 					case 'badpassword':
-						displayText = 'Incorrect Password.';
+						displayText = 'Connect';
+						$('#divProPresenterStatus').text('Incorrect Password.');
 						propresenter_disablefields(false);
+						$('#btnProPresenterConnect').removeClass('btn-primary btn-warning btn-danger');
+						$('#btnProPresenterConnect').addClass('btn-primary');
 						break;
 					case 'econnrefused':
-						displayText = 'Connection Refused. Is ProPresenter running and configured for network access?';
+						displayText = 'Connect';
+						$('#divProPresenterStatus').text('Connection Refused. Is ProPresenter running and configured for network access?');
+						$('#btnProPresenterConnect').removeClass('btn-primary btn-warning btn-danger');
+						$('#btnProPresenterConnect').addClass('btn-primary');
+						propresenter_disablefields(false);
+						break;
+					case 'etimedout':
+						displayText = 'Connect';
+						$('#divProPresenterStatus').text('Connection Timed Out. Is ProPresenter running and configured for network access?');
+						$('#btnProPresenterConnect').removeClass('btn-primary btn-warning btn-danger');
+						$('#btnProPresenterConnect').addClass('btn-primary');
 						propresenter_disablefields(false);
 						break;
 					default:
 						displayText = propresenter_status;
 						break;
 				}
-				$('#divProPresenterStatus').text(displayText);
+				$('#btnProPresenterConnect').text(displayText);
 			});
 
 			ipc.on('mdns_propresenter_hosts', function(event, hosts) {
 				mdns_propresenter_hosts = hosts;
 				let htmlAppend = '';
 
-				console.log(mdns_propresenter_hosts);
 				for (let i = 0; i < mdns_propresenter_hosts.length; i++) {
-					htmlAppend += '<a class="badge badge-pill badge-secondary" href="#" onclick="propresenter_usemdns(\'' + mdns_propresenter_hosts[i].ip + '\',\'' + mdns_propresenter_hosts[i].port + '\');">' + mdns_propresenter_hosts[i].ip + ' (' + mdns_propresenter_hosts[i].port + ')</a>';					
+					htmlAppend += '<a class="badge badge-pill badge-info" href="#" onclick="propresenter_usemdns(\'' + mdns_propresenter_hosts[i].ip + '\',\'' + mdns_propresenter_hosts[i].port + '\');">' + mdns_propresenter_hosts[i].name + ' (' + mdns_propresenter_hosts[i].ip + ')</a>';					
 				}
 				$('#divProPresenterHosts').html(htmlAppend);
 			});
@@ -80,7 +110,7 @@
 
 				console.log(mdns_midirelay_hosts);
 				for (let i = 0; i < mdns_midirelay_hosts.length; i++) {
-					htmlAppend += '<a class="badge badge-pill badge-secondary" href="#" onclick="midirelay_usemdns(\'' + mdns_midirelay_hosts[i].ip + '\',\'' + mdns_midirelay_hosts[i].port + '\');">' + mdns_midirelay_hosts[i].ip + ' (' + mdns_midirelay_hosts[i].port + ')</a>';					
+					htmlAppend += '<a class="badge badge-pill badge-info" href="#" onclick="midirelay_usemdns(\'' + mdns_midirelay_hosts[i].ip + '\',\'' + mdns_midirelay_hosts[i].port + '\');">' + mdns_midirelay_hosts[i].ip + ' (' + mdns_midirelay_hosts[i].port + ')</a>';					
 				}
 				$('#divMidiRelayHosts').html(htmlAppend);
 			});
@@ -90,50 +120,73 @@
 				presentationbridge_status = status;
 				switch(presentationbridge_status) {
 					case 'disconnected':
-						displayText = 'Disconnected.';
+						displayText = 'Connect';
+						$('#divPPresentationBridgeStatus').text('Disconnected.');
+						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger');
+						$('#btnPresentationBridgeConnect').addClass('btn-primary');
 						presentationbridge_disablefields(false);
 						break;
 					case 'connecting':
 						displayText = 'Connecting...';
 						presentationbridge_disablefields(true);
+						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger');
+						$('#btnPresentationBridgeConnect').addClass('btn-warning');
 						break;
 					case 'connected':
-						displayText = 'Connecting to server. Authenticating...';
+						displayText = 'Authenticating...';
 						presentationbridge_disablefields(true);
+						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger');
+						$('#btnPresentationBridgeConnect').addClass('btn-warning');
 						break;
 					case 'authenticated':
-						displayText = 'Connected!';
+						displayText = 'Disconnect';
 						presentationbridge_disablefields(true);
+						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger');
+						$('#btnPresentationBridgeConnect').addClass('btn-danger');
 						break;
 					case 'badid':
-						displayText = 'Invalid Bridge ID.';
+						displayText = 'Connect';
 						presentationbridge_disablefields(false);
+						$('#divPresentationBridgeStatus').text('Invalid Bridge ID.');
+						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger');
+						$('#btnPresentationBridgeConnect').addClass('btn-primary');
 						break;
 					case 'badpassword':
-						displayText = 'Incorrect Bridge or Password.';
+						displayText = 'Connect';
 						presentationbridge_disablefields(false);
+						$('#divPresentationBridgeStatus').text('Incorrect Bridge ID or Password.');
+						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger');
+						$('#btnPresentationBridgeConnect').addClass('btn-primary');
 						break;
 					case 'inuse':
-						displayText = 'This Bridge is already in use elsewhere.';
+						displayText = 'Connect';
 						presentationbridge_disablefields(false);
+						$('#divPresentationBridgeStatus').text('This Bridge is already in use elsewhere.');
+						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger');
+						$('#btnPresentationBridgeConnect').addClass('btn-primary');
 						break;
 					case 'econnrefused':
-						displayText = 'Connection Refused. Is Presentation Bridge running on the server?';
+						displayText = 'Connect';
 						presentationbridge_disablefields(false);
+						$('#divPresentationBridgeStatus').text('Connection Refused. Is Presentation Bridge running on the server?');
+						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger');
+						$('#btnPresentationBridgeConnect').addClass('btn-primary');
 						break;
 					case 'etimedout':
-						displayText = 'Connection Timed Out. Is Presentation Bridge running on the server?';
+						displayText = 'Connect';
 						presentationbridge_disablefields(false);
+						$('#divPresentationBridgeStatus').text('Connection Timed Out. Is Presentation Bridge running on the server?');
+						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger');
+						$('#btnPresentationBridgeConnect').addClass('btn-primary');
 						break;
 					default:
 						displayText = presentationbridge_status;
 						break;
 				}
-				$('#divPresentationBridgeStatus').text(displayText);
+				$('#btnPresentationBridgeConnect').text(displayText);
 			});
 
 			ipc.on('cs', function(event, cs) {
-
 				$('#divCurrentSlide').html(cs.replace(/\n/g, '<br />'));
 			});
 
@@ -177,6 +230,16 @@
 				ipc.send('propresenter_status');
 				ipc.send('mdns_propresenter_hosts');
 				ipc.send('mdns_midirelay_hosts');
+
+				$("body").tooltip({ selector: '[data-toggle=tooltip]' });
+
+				fs.readFile(helpFile, 'utf8' , (err, data) => {
+					if (err) {
+						console.error(err);
+						return;
+					}
+					$('#divHelpBody').html(marked(data));
+				});
 			});
 
 			function propresenter_connect() {
@@ -184,10 +247,16 @@
 				let propresenterPort = $('#txtProPresenterPort').val();
 				let propresenterPassword = $('#txtProPresenterPassword').val();
 
-				if (propresenter_status === 'authenticated') {
-					ipc.send('propresenter_disconnect');
+				ipc.send('propresenter_disconnect');
+
+				if ((propresenter_status === 'authenticated') || (propresenter_status === 'connecting')) {
+					$('#btnProPresenterConnect').text('Disconnecting...');
+					$('#btnProPresenterConnect').removeClass("btn-primary").addClass("btn-warning");
+					//ipc.send('propresenter_disconnect');
 				}
 				else {
+					$('#btnProPresenterConnect').text('Connecting...');
+					$('#btnProPresenterConnect').removeClass("btn-primary").addClass("btn-warning");
 					config.set('propresenterIP', propresenterIP);
 					config.set('propresenterPort', propresenterPort);
 					config.set('propresenterPassword', propresenterPassword);
@@ -221,19 +290,6 @@
 				$('#txtProPresenterIP').prop('disabled', value);
 				$('#txtProPresenterPort').prop('disabled', value);
 				$('#txtProPresenterPassword').prop('disabled', value);
-
-				if (!value) {
-					//change the button to allow connecting
-					$('#btnProPresenterConnect').text('Connect');
-					$('#btnProPresenterConnect').removeClass('btn-danger');
-					$('#btnProPresenterConnect').addClass('btn-primary');
-				}
-				else {
-					//change the button to say disconnect
-					$('#btnProPresenterConnect').text('Disconnect');
-					$('#btnProPresenterConnect').removeClass('btn-primary');
-					$('#btnProPresenterConnect').addClass('btn-danger');
-				}
 			}
 
 			function propresenter_usemdns(ip, port) {
@@ -252,19 +308,6 @@
 				$('#txtPresentationBridgePort').prop('disabled', value);
 				$('#txtPresentationBridgeID').prop('disabled', value);
 				$('#txtPresentationBridgePassword').prop('disabled', value);
-
-				if (!value) {
-					//change the button to allow connecting
-					$('#btnPresentationBridgeConnect').text('Connect');
-					$('#btnPresentationBridgeConnect').removeClass('btn-danger');
-					$('#btnPresentationBridgeConnect').addClass('btn-primary');
-				}
-				else {
-					//change the button to say disconnect
-					$('#btnPresentationBridgeConnect').text('Disconnect');
-					$('#btnPresentationBridgeConnect').removeClass('btn-primary');
-					$('#btnPresentationBridgeConnect').addClass('btn-danger');
-				}
 			}
 
 			function plugin_enable(plugin) {
@@ -288,7 +331,6 @@
 				}
 
 				config.set('plugin_' + plugin, enable);
-				console.log(plugin, enable);
 			}
 
 			function save() {
@@ -314,15 +356,11 @@
 				}
 
 				if (text !== '') {
-					console.log('Stage Display Message: ' + text);
 					if (text.indexOf(':') > -1) {
 						let commands = text.split(';');
 						for (let i = 0; i < commands.length; i++) {
-							let command = text.substring(0, text.indexOf(':')).toLowerCase();
-							console.log('Command: ' + command);
-							let parameters = text.substring(text.indexOf(':')+1).split(',');
-							console.log('Parameters: ' + parameters);
-					
+							let command = commands[i].substring(0, commands[i].indexOf(':')).toLowerCase();
+							let parameters = commands[i].substring(commands[i].indexOf(':')+1).split(',');					
 							let commandObj = {};
 					
 							if (parameters) {
@@ -458,16 +496,61 @@
 
 			function buildPill(command, obj, type) {
 				let htmlAppend = '';
+				let tooltipData = '';
+				let name = '';
 
 				switch(command) {
 					case 'noteon':
+						tooltipData = 'Channel ' + obj.channel + ', Note ' + obj.note + ', Velocity ' + obj.velocity;
+						name = 'Note On';
+					case 'noteoff':
+						tooltipData = 'Channel ' + obj.channel + ', Note ' + obj.note + ', Velocity ' + obj.velocity;
+						name = 'Note Off';
 						break;
+					case 'aftertouch':
+						tooltipData = 'Channel ' + obj.channel + ', Note ' + obj.note + ', Value ' + obj.value;
+						name = 'Polyphonic Aftertouch';
+						break;
+					case 'cc':
+						tooltipData = 'Channel ' + obj.channel + ', Note ' + obj.note + ', Value ' + obj.value;
+						name = 'Controller Change';
+						break;
+					case 'pc':
+						tooltipData = 'Channel ' + obj.channel + ', Value ' + obj.value;
+						name = 'Program Change';
+						break;
+					case 'pressure':
+						tooltipData = 'Channel ' + obj.channel + ', Value ' + obj.value;
+						name = 'Channel Pressure';
+						break;
+					case 'pitchbend':
+						tooltipData = 'Channel ' + obj.channel + ', Value ' + obj.value;
+						name = 'Pitchbend';
+						break;
+					case 'msc':
+						tooltipData = 'Device ID ' + obj.deviceid + ', Command Format ' + obj.commandformat + ', Command ' + obj.command + ', Cue ' + obj.cue + ', Cuelist ' + obj.cuelist + ', Cuepath ' + obj.cuepath;
+						name = 'MIDI Show Control';
+						break;
+					case 'sysex':
+						tooltipData = 'Message ' + obj.message;
+						name = 'SysEx';
 					case 'vista':
-						htmlAppend = '<span class="badge badge-pill badge-primary" data-toggle="tooltip" data-placement="bottom" title="Tooltip on bottom">Vista</span>';
+						tooltipData = 'Cuelist ' + obj.cuelist + ', Cue ' + obj.cue;
+						name = 'Vista';
+						break;
+					case 'http':
+						tooltipData = 'Type ' + obj.type + ', URL ' + obj.url;
+						name = 'HTTP';
+						break;
+					case 'companion':
+						tooltipData = 'Bank ' + obj.bank + ', Button ' + obj.button;
+						name = 'Companion Button';
 						break;
 					default:
 						break;
 				}
+
+				htmlAppend = '<span class="badge badge-pill badge-primary" data-toggle="tooltip" data-placement="bottom" title="' + tooltipData + '">' + name + '</span>';
 
 				switch(type) {
 					case 'csn':
@@ -478,16 +561,15 @@
 						break;
 				}
 			}
-
-			$(function () {
-				$('[data-toggle="tooltip"]').tooltip()
-			});
 		</script>
 	</head>
 	<body>
 		<div class="container">
 			<header>
-				<h1>Presentation Bridge Link</h1>
+				<h1>PresentationBridge Client</h1>
+				<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#helpModal">
+					Help
+				  </button>
 			</header>
 			<div class='row'>
 				<div class='col-sm'>
@@ -671,7 +753,7 @@
 						<div class='row'>
 							<div class="custom-control custom-switch">
 								<input type="checkbox" class="custom-control-input" id="switchCompanion" onClick="plugin_enable('companion');">
-								<label class="custom-control-label" for="switchCompanion">Companion</label>
+								<label class="custom-control-label" for="switchCompanion">Companion Button Press</label>
 							  </div>
 						</div>
 						<div class='row'>
@@ -696,14 +778,31 @@
 				<div class='col-sm'>
 					<div class='row'><b>Current Slide:</b></div>
 					<div class='row' style='height: 150px;border: #eeeeee 1px solid;' id='divCurrentSlide'></div>
-					<div class='row'><b>Current Slide Notes:</b></div>
 					<div class='row' id='divCurrentSlideNotes'></div>
+					<div class='row'>&nbsp;</div>
 					<div class='row'><b>Next Slide:</b></div>
 					<div class='row' style='height: 150px;border: #eeeeee 1px solid;' id='divNextSlide'><b>Next Slide:</b></div>
-					<div class='row'><b>Next Slide Notes:</b></div>
 					<div class='row' id='divNextSlideNotes'></div>
 				</div>
 			</div>
+			<div class="modal fade" id="helpModal" tabindex="-1" role="dialog" aria-labelledby="helpModalLabel" aria-hidden="true">
+				<div class="modal-dialog" role="document">
+				  <div class="modal-content">
+					<div class="modal-header">
+					  <h5 class="modal-title" id="helpModalLabel">Help</h5>
+					  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					  </button>
+					</div>
+					<div class="modal-body" id='divHelpBody'>
+					  
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+					  </div>
+				  </div>
+				</div>
+			  </div>
 			<footer></footer>
 		</div>
 	</body>

@@ -25,6 +25,7 @@ var propresenter_nsn = '';
 
 const axios = require('axios');
 const socketio = require('socket.io-client');
+const net = require('net');
 
 //PresentationBridge variables
 let bridgeConnected = false;
@@ -180,15 +181,17 @@ function buildTray() {
 function findHosts() {
 	mdns_browser_propresenter = mdns.createBrowser(mdns.tcp('pro7stagedsply'));
 	mdns_browser_midirelay = mdns.createBrowser(mdns.tcp('midi-relay'));
+	//mdns_browser_midirelay = mdns.createBrowser();
 
 	mdns_browser_propresenter.on('ready', function onReady() {
 		mdns_browser_propresenter.discover();
 	});
 
 	mdns_browser_propresenter.on('update', function onUpdate(data) {
+		//console.log(data);
 		for (let i = 0; i < data.type.length; i++) {
 			if (data.type[i].name.indexOf('pro7stagedsply') > -1) {
-				mdns_propresenter_addhost(data.host, data.addresses[0], data.port);
+				mdns_propresenter_addhost(data.host, data.addresses[0], data.port, data.fullname);
 			}	
 		}
 	});
@@ -198,6 +201,7 @@ function findHosts() {
 	});
 
 	mdns_browser_midirelay.on('update', function onUpdate(data) {
+		//console.log(data);
 		for (let i = 0; i < data.type.length; i++) {
 			if (data.type[i].name.indexOf('midi-relay') > -1) {
 				mdns_midirelay_addhost(data.host, data.addresses[0], data.port);
@@ -206,7 +210,7 @@ function findHosts() {
 	});
 }
 
-function mdns_propresenter_addhost(host, ip, port) {
+function mdns_propresenter_addhost(host, ip, port, name) {
 	// first check to see if it's already in the list, and don't add it if so
 	let isFound = false;
 
@@ -214,6 +218,7 @@ function mdns_propresenter_addhost(host, ip, port) {
 		if (mdns_propresenter_hosts[i].ip === ip) {
 			isFound = true;
 			mdns_propresenter_hosts[i].port = port;
+			mdns_propresenter_hosts[i].name = name.substring(0, name.indexOf('.'));
 			break;
 		}
 	}
@@ -223,6 +228,7 @@ function mdns_propresenter_addhost(host, ip, port) {
 		hostObj.name = host;
 		hostObj.ip = ip;
 		hostObj.port = port;
+		hostObj.name = name.substring(0, name.indexOf('.'));
 		mdns_propresenter_hosts.push(hostObj);
 	}
 
@@ -254,6 +260,8 @@ function mdns_midirelay_addhost(host, ip, port) {
 	if (mainWindow) {
 		mainWindow.webContents.send('mdns_midirelay_hosts', mdns_midirelay_hosts);
 	}
+
+	console.log('mdns hosts', mdns_midirelay_hosts);
 }
 
 function propresenter_connect() {
@@ -309,7 +317,7 @@ function propresenter_connect() {
 		console.log('ProPresenter disconnected.');
 		//console.log('Current State: ' + propresenter_status);
 		if (propresenter_status !== 'force_disconnected') {
-			setTimeout(propresenter_reconnect, 5000); //attempt to reeconnect until a connection is refused or times out
+			setTimeout(propresenter_reconnect, 5000); //attempt to reeconnect until the user forces it to stop
 		}
 		SendStatusMessage();
 	});
@@ -537,9 +545,9 @@ function parseStageDisplayMessage(text) {
 		console.log('Stage Display Message: ' + text);
 		let commands = text.split(';');
 		for (let i = 0; i < commands.length; i++) {
-			let command = text.substring(0, text.indexOf(':'));
+			let command = commands[i].substring(0, commands[i].indexOf(':'));
 			console.log('Command: ' + command);
-			let parameters = text.substring(text.indexOf(':')+1).split(',');
+			let parameters = commands[i].substring(commands[i].indexOf(':')+1).split(',');
 			console.log('Parameters: ' + parameters);
 	
 			let commandObj = {};
@@ -745,7 +753,23 @@ function sendHttpMessage(httpObj) {
 function sendCompanionMessage(companionObj) {
 	if (commands_on) {
 		if (config.get('plugin_companion')) {
+			let bank = companionObj.bank;
+			let button = companionObj.button;
 
+			let companionClient = new net.Socket();
+			companionClient.connect(51234, config.get('companionIP'), function() {
+				console.log('Connected to Companion. Sending Button Press.');
+				companionClient.write(`BANK-PRESS ${bank} ${button}\r\n`);
+			});
+		
+			companionClient.on('data', function(data) {
+				console.log('Received from Companion: ' + data);
+				companionClient.destroy(); // kill client after server's response
+			});
+		
+			companionClient.on('close', function() {
+				console.log('Companion connection closed');
+			});
 		}
 	}
 }
@@ -776,7 +800,13 @@ ipcMain.on('mdns_midirelay_hosts', function (event) {
 
 ipcMain.on('propresenter_connect', function (event, ip, port, password) {
 	propresenter_disconnect(false);
+	propresenter_status = 'connecting';
+	SendStatusMessage();
 	setTimeout(propresenter_connect, 2000);
+});
+
+ipcMain.on('propresenter_disconnect', function (event) {
+	propresenter_disconnect(false);
 });
 
 ipcMain.on('propresenter_disconnect', function (event) {
