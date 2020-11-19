@@ -160,7 +160,7 @@ You can also use the following notations to perform specific HTTP request types:
 
 Example: `http:get,http://www.techministry.blog` : This would perform an HTTP GET request to the URL, `http://www.techministry.blog`.
 
-## Companion Button PRess
+## Companion Button Press
 
 Format: `companion:[bank],[button]`
 

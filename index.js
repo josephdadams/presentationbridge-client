@@ -36,7 +36,7 @@ var commands_on = true;
 var lyrics_on = true;
 
 unhandled();
-debug();
+//debug();
 
 var trayMenuItems = [
 	{
@@ -116,7 +116,7 @@ const createMainWindow = async () => {
 	win.on('closed', () => {
 		// Dereference the window
 		// For multiple windows store them in an array
-		//mainWindow = undefined;
+		mainWindow = undefined;
 	});
 
 	await win.loadFile(path.join(__dirname, 'index.html'));

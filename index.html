@@ -6,12 +6,14 @@
 		<link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css">
 		<link rel="stylesheet" href="index.css">
 		<script>window.$ = window.jQuery = require('./node_modules/jquery/dist/jquery.min.js');</script>
-		<script src='node_modules/jquery/dist/jquery.min.js'></script>
-		<script src='node_modules/bootstrap/dist/js/bootstrap.bundle.js'></script>
+		<script src='./node_modules/jquery/dist/jquery.min.js'></script>
+		<script src='./node_modules/bootstrap/dist/js/bootstrap.bundle.js'></script>
+		<script src="./static/mask.ip-input.js"></script>
 		<script>
 			
 			const ipc = require('electron').ipcRenderer;
 			const remote = require('electron').remote;
+			const { shell } = require('electron')
 			
 			const config = require('./config');
 
@@ -240,6 +242,8 @@
 					}
 					$('#divHelpBody').html(marked(data));
 				});
+
+				$('[ip-mask]').ipAddress();
 			});
 
 			function propresenter_connect() {
@@ -503,6 +507,7 @@
 					case 'noteon':
 						tooltipData = 'Channel ' + obj.channel + ', Note ' + obj.note + ', Velocity ' + obj.velocity;
 						name = 'Note On';
+						break;
 					case 'noteoff':
 						tooltipData = 'Channel ' + obj.channel + ', Note ' + obj.note + ', Velocity ' + obj.velocity;
 						name = 'Note Off';
@@ -561,12 +566,17 @@
 						break;
 				}
 			}
+
+			function openAuthor() {
+				shell.openExternal('http://techministry.blog');
+			}
 		</script>
 	</head>
 	<body>
 		<div class="container">
 			<header>
 				<h1>PresentationBridge Client</h1>
+				<h2>Created by <a href="#" onclick="openAuthor();">techministry.blog</a></h2>
 				<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#helpModal">
 					Help
 				  </button>
@@ -587,7 +597,7 @@
 									<div class="input-group-prepend">
 										<label class="input-group-text" for="txtProPresenterIP">IP</label>
 									</div>
-									<input type="text"  id='txtProPresenterIP' class='form-control' minlength="7" maxlength="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$">
+									<input type="text"  id='txtProPresenterIP' class='form-control' minlength="7" maxlength="15" ip-mask value="127.0.0.1" placeholder="000.000.000.000">
 								</div>
 							</div>
 						</div>
@@ -626,7 +636,7 @@
 									<div class="input-group-prepend">
 										<label class="input-group-text" for="txtPresentationBridgeHost">Bridge Host</label>
 									</div>
-									<input type="text"  id='txtPresentationBridgeHost' class='form-control' minlength="7" maxlength="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$">
+									<input type="text"  id='txtPresentationBridgeHost' class='form-control' minlength="7" maxlength="15" ip-mask value="192.168.1.1" placeholder="000.000.000.000">
 								</div>
 							</div>
 							<div class='form-group col-md-5'>
@@ -682,7 +692,7 @@
 									<div class="input-group-prepend">
 										<label class="input-group-text" for="txtMIDIRelayIP">IP</label>
 									</div>
-									<input type="text"  id='txtMIDIRelayIP' class='form-control' minlength="7" maxlength="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$">
+									<input type="text"  id='txtMIDIRelayIP' class='form-control' minlength="7" maxlength="15" ip-mask value="127.0.0.1" placeholder="000.000.000.000">
 								</div>
 							</div>
 							<div class='form-group col-md-5'>
@@ -718,7 +728,7 @@
 									<div class="input-group-prepend">
 										<label class="input-group-text" for="txtVistaIP">IP</label>
 									</div>
-									<input type="text"  id='txtVistaIP' class='form-control' minlength="7" maxlength="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$">
+									<input type="text"  id='txtVistaIP' class='form-control' minlength="7" maxlength="15" ip-mask value="127.0.0.1" placeholder="000.000.000.000">
 								</div>
 							</div>
 							<div class='form-group col-md-5'>
