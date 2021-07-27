@@ -21,6 +21,7 @@
 			const helpFile = './help.md';
 
 			const fs = require('fs')
+			const package_json = require('./package.json');
 
 			var propresenter_status = 'disconnected';
 			var mdns_propresenter_hosts = [];
@@ -191,6 +192,8 @@
 			});
 
 			$( document ).ready(function() {
+				$('#divTopLine').html('  v' + package_json.version)
+
 				$('#txtProPresenterIP').val(config.get('propresenterIP'));
 				$('#txtProPresenterPort').val(config.get('propresenterPort'));
 				$('#txtProPresenterPassword').val(config.get('propresenterPassword'));
@@ -367,11 +370,12 @@
 		<div class="container">
 			<header>
 				<h1>PresentationBridge Client</h1>
-				<h2>Created by <a href="#" onclick="openAuthor();">techministry.blog</a></h2>
+				<h2>Created by <a href="#" onclick="openAuthor();">techministry.blog</a></h2><h3  id='divTopLine'></h3>
+				<div class='vertical-space'></div>
 			</header>
 
 			<section>
-				<div class=horizontal-line></div>
+				<div class='horizontal-line'></div>
 				<div class='form-row'>
 					<div class='form-group col-md-4'>
 					<b>ProPresenter Settings:</b>
@@ -416,7 +420,7 @@
 				</div>
 			</section>
 			<section>
-				<div class=horizontal-line></div>
+				<div class='horizontal-line'></div>
 				<div class='form-row'>
 					<div class='form-group col-md-4'>
 						<b>Presentation Bridge:</b>
@@ -467,7 +471,7 @@
 
 			</section>
 			<section>
-				<div class=horizontal-line></div>
+				<div class='horizontal-line'></div>
 				<div class='form-row'>
 					<div class='form-group col-md-4'>
 					<div class="custom-control custom-switch">
@@ -507,7 +511,7 @@
 				</div>
 			</section>
 			<section>
-				<div class=horizontal-line></div>
+				<div class='horizontal-line'></div>
 				<div class='form-row'>
 					<div class='form-group col-md-6'>
 						<div class="custom-control custom-switch">
@@ -544,7 +548,7 @@
 				</div>
 			</section>
 			<section>
-				<div class=horizontal-line></div>
+				<div class='horizontal-line'></div>
 				<div class='form-row'>
 					<div class='form-group col-md-4'>
 						<div class="custom-control custom-switch">
@@ -563,7 +567,7 @@
 				</div>
 			</section>
 			<section>
-			<div class=horizontal-line></div>
+			<div class='horizontal-line'></div>
 			<div class='form-row'>
 				<div class='form-group col-md-4'>
 					<div class="custom-control custom-switch">
@@ -574,7 +578,7 @@
 			</div>
 			</section>
 			<section>
-				<div class=horizontal-line></div>
+				<div class='horizontal-line'></div>
 				<div class='row'>
 				<div class='form-group col-md-2'>
 					<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#helpModal">
