@@ -1,0 +1,301 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>PresentationBridge Client Monitor</title>
+		<link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css">
+		<link rel="stylesheet" href="index.css">
+		<script>window.$ = window.jQuery = require('./node_modules/jquery/dist/jquery.min.js');</script>
+		<script src='./node_modules/jquery/dist/jquery.min.js'></script>
+		<script src='./node_modules/bootstrap/dist/js/bootstrap.bundle.js'></script>
+		<script src="./static/mask.ip-input.js"></script>
+		<script>
+			
+			const ipc = require('electron').ipcRenderer;
+			const remote = require('electron').remote;
+			const { shell } = require('electron')
+			
+			const config = require('./config');
+
+			const marked = require("marked");
+			const helpFile = './help.md';
+
+			const fs = require('fs')
+
+			ipc.on('cs', function(event, cs) {
+				$('#divCurrentSlide').html(cs.replace(/\n/g, '<br />'));
+			});
+
+			ipc.on('csn', function(event, csn) {
+				processSlideNotes('csn', csn);
+			});
+
+			ipc.on('ns', function(event, ns) {
+				$('#divNextSlide').html(ns.replace(/\n/g, '<br />'));
+			});
+
+			ipc.on('nsn', function(event, nsn) {
+				processSlideNotes('nsn', nsn);
+			});
+			function processSlideNotes(type, text) {
+				switch(type) {
+					case 'csn':
+						$('#divCurrentSlideNotes').html('');
+						break;
+					case 'nsn':
+						$('#divNextSlideNotes').html('');
+						break;
+				}
+
+				if (text !== '') {
+					if (text.indexOf(':') > -1) {
+						let commands = text.split(';');
+						for (let i = 0; i < commands.length; i++) {
+							let command = commands[i].substring(0, commands[i].indexOf(':')).toLowerCase();
+							let parameters = commands[i].substring(commands[i].indexOf(':')+1).split(',');					
+							let commandObj = {};
+					
+							if (parameters) {
+								switch(command) {
+									case 'noteon':
+										//"noteon:0,55,100" Note On Command, Channel 1 (zero based), Note 55, Velocity 100
+										commandObj.midiport = config.get('midirelayMIDIPort');
+										commandObj.midicommand = 'noteon';
+										commandObj.channel = parameters[0];
+										commandObj.note = parameters[1];
+										commandObj.velocity = parameters[2];
+										buildPill(command, commandObj, type);
+										break;
+									case 'noteoff':
+										//"noteoff:0,55,0" Note Off Command, Channel 1 (zero based), Note 55, Velocity 0
+										commandObj.midiport = config.get('midirelayMIDIPort');
+										commandObj.midicommand = 'noteoff';
+										commandObj.channel = parameters[0];
+										commandObj.note = parameters[1];
+										commandObj.velocity = parameters[2];
+										buildPill(command, commandObj, type);
+										break;
+									case 'aftertouch':
+										//"aftertouch:0,55,100" Polyphonic Aftertouch Command, Channel 1 (zero based), Note 55, Value 100
+										commandObj.midiport = config.get('midirelayMIDIPort');
+										commandObj.midicommand = 'aftertouch';
+										commandObj.channel = parameters[0];
+										commandObj.note = parameters[1];
+										commandObj.value = parameters[2];
+										buildPill(command, commandObj, type);
+										break;
+									case 'cc':
+										//"cc:0,32,100" CC (Controller Change) Command, Channel 1 (zero based), Controller 32, Value 100
+										commandObj.midiport = config.get('midirelayMIDIPort');
+										commandObj.midicommand = 'cc';
+										commandObj.channel = parameters[0];
+										commandObj.note = parameters[1];
+										commandObj.value = parameters[2];
+										buildPill(command, commandObj, type);
+										break;
+									case 'pc':
+										//"pc:0,100" PC (Program Change) Command, Channel 1 (zero based), Value 100
+										commandObj.midiport = config.get('midirelayMIDIPort');
+										commandObj.midicommand = 'pc';
+										commandObj.channel = parameters[0];
+										commandObj.value = parameters[1];
+										buildPill(command, commandObj, type);
+										break;
+									case 'pressure':
+										//"pressure:0,100" Channel Pressure / Aftertouch Command, Channel 1 (zero based), Value 100
+										commandObj.midiport = config.get('midirelayMIDIPort');
+										commandObj.midicommand = 'pressure';
+										commandObj.channel = parameters[0];
+										commandObj.value = parameters[1];
+										buildPill(command, commandObj, type);
+										break;
+									case 'pitchbend':
+										//"pitchbend:0,100" Pitchbend Command, Channel 1 (zero based), Value 100
+										commandObj.midiport = config.get('midirelayMIDIPort');
+										commandObj.midicommand = 'pitchbend';
+										commandObj.channel = parameters[0];
+										commandObj.value = parameters[1];
+										buildPill(command, commandObj, type);
+										break;
+									case 'msc':
+										//"msc:0,lighting.general,go,1,12,," MSC Command, Device ID 0, Command Format lighting.general, Cue 1, Cuelist 12, Cue Path blank
+										commandObj.midiport = config.get('midirelayMIDIPort');
+										commandObj.midicommand = 'msc';
+										commandObj.deviceid = parameters[0];
+										commandObj.commandformat = parameters[1];
+										commandObj.command = parameters[2];
+										commandObj.cue = parameters[3];
+										commandObj.cuelist = parameters[4];
+										commandObj.cuepath = parameters[5];
+										buildPill(command, commandObj, type);
+										break;
+									case 'sysex':
+										//"sysex;0xF0,0x41,0x10,0x00,0x00,0x00,0x20,0x12,0x71,0x00,0x08,0x00,0x07,0xF7" SysEx Command, Hexadecimal or Decimal format
+										commandObj.midiport = config.get('midirelayMIDIPort');
+										commandObj.midicommand = 'sysex';
+										commandObj.message = parameters[0];
+										buildPill(command, commandObj, type);
+										break;
+									case 'vista':
+										//"vista:12,1" Vista MSC Command, Cuelist 12, Cue 1
+										commandObj.midiport = config.get('vistaMIDIPort');
+										commandObj.midicommand = 'msc';
+										commandObj.deviceid = '0';
+										commandObj.commandformat = 'lighting.general';
+										commandObj.command = 'go';
+										commandObj.cue = parameters[1];
+										commandObj.cuelist = parameters[0];
+										commandObj.cuepath = '';
+										buildPill(command, commandObj, type);
+										break;
+									case 'http':
+										//"http:post,url,{json}"
+										//"http:get,url"
+										//"http:url"
+										if (parameters[0] === 'POST') {
+											commandObj.type = 'POST';
+											commandObj.url = parameters[1];
+											if (parameters[2]) {
+												commandObj.data = parameters[2];
+											}
+										}
+										else if (parameters[0] === 'GET') {
+											commandObj.type = 'GET';
+											commandObj.url = parameters[1];
+										}
+										else {
+											commandObj.type = 'GET';
+											commandObj.url = parameters[0];
+										}
+										buildPill(command, commandObj, type);
+										break;
+									case 'companion':
+									case 'cbp':
+										//"companion:1,2"
+										commandObj.bank = parameters[0];
+										commandObj.button = parameters[1];
+										buildPill(command, commandObj, type);
+										break;
+									default:
+										commandObj.text = 'Invalid Command';
+										buildPill(command, commandObj, type);
+										break;
+								}
+							}
+						}
+					}
+				}
+			}
+
+			function buildPill(command, obj, type) {
+				let htmlAppend = '';
+				let tooltipData = '';
+				let name = '';
+
+				switch(command) {
+					case 'noteon':
+						tooltipData = 'Channel ' + obj.channel + ', Note ' + obj.note + ', Velocity ' + obj.velocity;
+						name = 'Note On';
+						break;
+					case 'noteoff':
+						tooltipData = 'Channel ' + obj.channel + ', Note ' + obj.note + ', Velocity ' + obj.velocity;
+						name = 'Note Off';
+						break;
+					case 'aftertouch':
+						tooltipData = 'Channel ' + obj.channel + ', Note ' + obj.note + ', Value ' + obj.value;
+						name = 'Polyphonic Aftertouch';
+						break;
+					case 'cc':
+						tooltipData = 'Channel ' + obj.channel + ', Note ' + obj.note + ', Value ' + obj.value;
+						name = 'Controller Change';
+						break;
+					case 'pc':
+						tooltipData = 'Channel ' + obj.channel + ', Value ' + obj.value;
+						name = 'Program Change';
+						break;
+					case 'pressure':
+						tooltipData = 'Channel ' + obj.channel + ', Value ' + obj.value;
+						name = 'Channel Pressure';
+						break;
+					case 'pitchbend':
+						tooltipData = 'Channel ' + obj.channel + ', Value ' + obj.value;
+						name = 'Pitchbend';
+						break;
+					case 'msc':
+						tooltipData = 'Device ID ' + obj.deviceid + ', Command Format ' + obj.commandformat + ', Command ' + obj.command + ', Cue ' + obj.cue + ', Cuelist ' + obj.cuelist + ', Cuepath ' + obj.cuepath;
+						name = 'MIDI Show Control';
+						break;
+					case 'sysex':
+						tooltipData = 'Message ' + obj.message;
+						name = 'SysEx';
+					case 'vista':
+						tooltipData = 'Cuelist ' + obj.cuelist + ', Cue ' + obj.cue;
+						name = 'Vista';
+						break;
+					case 'http':
+						tooltipData = 'Type ' + obj.type + ', URL ' + obj.url;
+						name = 'HTTP';
+						break;
+					case 'companion':
+					case 'cbp':
+						tooltipData = 'Bank ' + obj.bank + ', Button ' + obj.button;
+						name = 'Companion Button';
+						break;
+					default:
+						break;
+				}
+
+				htmlAppend = '<span class="badge badge-pill badge-primary" data-toggle="tooltip" data-placement="bottom" title="' + tooltipData + '">' + name + '</span>';
+
+				switch(type) {
+					case 'csn':
+						$('#divCurrentSlideNotes').append(htmlAppend);
+						break;
+					case 'nsn':
+						$('#divNextSlideNotes').append(htmlAppend);
+						break;
+				}
+			}
+
+			function openAuthor() {
+				shell.openExternal('http://techministry.blog');
+			}
+		</script>
+	</head>
+	<body>
+		<div class="container">
+			<header>
+				<h1>PresentationBridge Client Monitor</h1>
+				<h2>Created by <a href="#" onclick="openAuthor();">techministry.blog</a></h2>
+			</header>
+
+			<div class='row'><b>Current Slide:</b></div>
+			<div class='row' style='height: 150px;border: #eeeeee 1px solid;' id='divCurrentSlide'></div>
+			<div class='row' id='divCurrentSlideNotes'></div>
+			<div class='row'>&nbsp;</div>
+			<div class='row'><b>Next Slide:</b></div>
+			<div class='row' style='height: 150px;border: #eeeeee 1px solid;' id='divNextSlide'></div>
+			<div class='row' id='divNextSlideNotes'></div>
+
+			<div class="modal fade" id="helpModal" tabindex="-1" role="dialog" aria-labelledby="helpModalLabel" aria-hidden="true">
+				<div class="modal-dialog" role="document">
+				  <div class="modal-content">
+					<div class="modal-header">
+					  <h5 class="modal-title" id="helpModalLabel">Help</h5>
+					  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					  </button>
+					</div>
+					<div class="modal-body" id='divHelpBody'>
+					  
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+					  </div>
+				  </div>
+				</div>
+			  </div>
+			<footer></footer>
+		</div>
+	</body>
+</html>

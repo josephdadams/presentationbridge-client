@@ -17,6 +17,8 @@ module.exports = new Store({
 		plugin_midirelay: true,
 		plugin_vista: true,
 		plugin_http: true,
-		plugin_companion: true
+		plugin_companion: true,
+		switch_settings: true,
+		switch_monitor: true
 	}
 });
