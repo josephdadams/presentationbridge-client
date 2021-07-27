@@ -64,7 +64,7 @@
 						break;
 					case 'authenticated':
 						displayText = 'Disconnect';
-						$('#divProPresenterStatus').text('');
+						$('#divProPresenterStatus').text('Connected');
 						propresenter_disablefields(true);
 						$('#btnProPresenterConnect').removeClass('btn-primary btn-warning btn-danger');
 						$('#btnProPresenterConnect').addClass('btn-danger');
@@ -143,7 +143,7 @@
 						break;
 					case 'authenticated':
 						displayText = 'Disconnect';
-						$('#divPresentationBridgeStatus').text('');
+						$('#divPresentationBridgeStatus').text('Connected');
 						presentationbridge_disablefields(true);
 						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger');
 						$('#btnPresentationBridgeConnect').addClass('btn-danger');
