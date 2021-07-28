@@ -1,6 +1,6 @@
 'use strict';
 const path = require('path');
-const {app, BrowserWindow, Menu, Tray, ipcMain} = require('electron');
+const {app, BrowserWindow, Menu, Tray, ipcMain, nativeImage} = require('electron');
 // const {autoUpdater} = require('electron-updater');
 const {is} = require('electron-util');
 const unhandled = require('electron-unhandled');
@@ -35,6 +35,9 @@ var presentationbridge_status = 'disconnected';
 var commands_on = true;
 var lyrics_on = true;
 
+//Companion socket
+let companionClient = undefined;
+
 unhandled();
 //debug();
 
@@ -53,6 +56,7 @@ var trayMenuItems = [
 			openSettings();
 		}
 	},
+
 	{
 		label: 'Go To Logo',
 		click: function () {
@@ -69,6 +73,12 @@ var trayMenuItems = [
 		label: 'Turn Off Cloud Lyrics',
 		click: function () {
 			turnOffLyrics();
+		}
+	},
+	{
+		label: 'Monitor',
+		click: function () {
+			openMonitor();
 		}
 	},
 	{
@@ -94,12 +104,106 @@ app.setAppUserModelId('com.techministry.presentationbridgeclient');
 // 	autoUpdater.checkForUpdates();
 // }
 
-// Prevent window from being garbage collected
-let mainWindow;
+// Prevent windows from being garbage collected
+let settingsWindow;
+let monitorWindow;
 
-const createMainWindow = async () => {
+// Prevent multiple instances of the app
+if (!app.requestSingleInstanceLock()) {
+	app.quit();
+}
+
+app.on('second-instance', () => {
+	if (settingsWindow) {
+		if (settingsWindow.isMinimized()) {
+			settingsWindow.restore();
+		}
+
+		settingsWindow.show();
+	}
+	if (monitorWindow) {
+		if (monitorWindow.isMinimized()) {
+			monitorWindow.restore();
+		}
+
+		monitorWindow.show();
+	}
+});
+
+app.on('window-all-closed', () => {
+	/* 
+	Don't quit just because windows are closed as Tray will still be running
+	*/
+});
+
+app.on('quit', () => {
+	if (companionClient !== undefined) {
+		companionClient.destroy()
+	}
+	clearLyrics();
+});
+
+app.on('activate', async () => {
+	if (!settingsWindow) {
+		settingsWindow = await createsettingsWindow();
+	}
+	if (!monitorWindow) {
+		monitorWindow = await createmonitorWindow();
+	}
+
+	if (process.platform === "darwin")
+	{
+		app.dock.hide(); // Keep it out of the dock
+	}
+});
+
+const createsettingsWindow = async () => {
 	const win = new BrowserWindow({
 		title: app.name + ' Settings',
+		autoHideMenuBar: true,
+		show: false,
+		width: 1000,
+		height: 825,
+		webPreferences: {
+			nodeIntegration: true,
+			enableRemoteModule: true
+		}
+	});
+
+	win.on('ready-to-show', () => {
+		if (config.get('switch_settings')) {
+			win.show();
+		}
+	});
+
+	win.on('closed', () => {
+		// Dereference the window
+		// For multiple windows store them in an array
+		settingsWindow = undefined
+	});
+
+	await win.loadFile(path.join(__dirname, 'index.html'));
+
+	return win;
+};
+
+const openSettings = async () => {
+	if (settingsWindow !== undefined) {
+		if (settingsWindow.isMinimized()) {
+			settingsWindow.restore();
+		}
+
+		settingsWindow.show();
+	}
+	else {
+		settingsWindow = await createsettingsWindow();
+	}
+}
+
+const createmonitorWindow = async () => {
+	const win2 = new BrowserWindow({
+		title: app.name + ' Monitor',
+		autoHideMenuBar: true,
 		show: false,
 		width: 1000,
 		height: 800,
@@ -109,57 +213,43 @@ const createMainWindow = async () => {
 		}
 	});
 
-	win.on('ready-to-show', () => {
-		win.show();
+	win2.on('ready-to-show', () => {
+		if (config.get('switch_monitor')) {
+			win2.show();
+		}
 	});
 
-	win.on('closed', () => {
+	win2.on('closed', () => {
 		// Dereference the window
 		// For multiple windows store them in an array
-		mainWindow = undefined;
+		monitorWindow = undefined;
 	});
 
-	await win.loadFile(path.join(__dirname, 'index.html'));
+	await win2.loadFile(path.join(__dirname, 'monitor.html'));
 
-	return win;
+	return win2;
 };
 
-// Prevent multiple instances of the app
-if (!app.requestSingleInstanceLock()) {
-	app.quit();
-}
+const openMonitor = async () => {
 
-app.on('second-instance', () => {
-	if (mainWindow) {
-		if (mainWindow.isMinimized()) {
-			mainWindow.restore();
+	if (monitorWindow !== undefined) {
+		if (monitorWindow.isMinimized()) {
+			monitorWindow.restore();
 		}
 
-		mainWindow.show();
+		monitorWindow.show();
 	}
-});
-
-app.on('window-all-closed', () => {
-	if (!is.macos) {
-		app.quit();
+	else {
+		monitorWindow = await createmonitorWindow();
 	}
-});
-
-app.on('activate', async () => {
-	if (!mainWindow) {
-		mainWindow = await createMainWindow();
-	}
-
-	if (process.platform === "darwin")
-	{
-		app.dock.hide(); // Keep it out of the dock
-	}
-});
+}
 
 (async () => {
 	await app.whenReady();
-	mainWindow = await createMainWindow();
-	tray = new Tray('cloudTemplate.png');
+	settingsWindow = await createsettingsWindow();
+	monitorWindow = await createmonitorWindow();
+	//tray = new Tray(path.join(__dirname,'cloudTemplate.png'));
+	tray = new Tray(path.join(__dirname,'Bridge-icon.png'));
 	buildTray();
 	findHosts();
 
@@ -232,8 +322,8 @@ function mdns_propresenter_addhost(host, ip, port, name) {
 		mdns_propresenter_hosts.push(hostObj);
 	}
 
-	if (mainWindow) {
-		mainWindow.webContents.send('mdns_propresenter_hosts', mdns_propresenter_hosts);
+	if (settingsWindow) {
+		settingsWindow.webContents.send('mdns_propresenter_hosts', mdns_propresenter_hosts);
 	}
 }
 
@@ -257,8 +347,8 @@ function mdns_midirelay_addhost(host, ip, port) {
 		mdns_midirelay_hosts.push(hostObj);
 	}
 
-	if (mainWindow) {
-		mainWindow.webContents.send('mdns_midirelay_hosts', mdns_midirelay_hosts);
+	if (settingsWindow) {
+		settingsWindow.webContents.send('mdns_midirelay_hosts', mdns_midirelay_hosts);
 	}
 
 	console.log('mdns hosts', mdns_midirelay_hosts);
@@ -295,6 +385,7 @@ function propresenter_connect() {
 
 	propresenter_socket.on('message', function(message) {
 		// Handle the stage display message received from ProPresenter
+		console.log('PP message:' + message)
 		handleStageDisplayMessage(message);
 	});
 
@@ -349,7 +440,7 @@ function presentationbridge_connect() {
 
 	bridgeIO = socketio('http://' + host + ':' + port, { 'forceNew': true });
 	presentationbridge_status = 'connecting';
-	console.log('Connecting to Presentation Bridge Server...');
+	console.log('Connecting to Presentation Bridge Server...' + host + ' : ' + port);
 	SendStatusMessage();
 
 	bridgeIO.on('connect', function() {
@@ -393,6 +484,21 @@ function presentationbridge_connect() {
 		trayMenuItems[1].label = 'Invalid Bridge ID: ' + host + ':' + port;
 		buildTray();
 		SendStatusMessage();
+	});
+
+	bridgeIO.on('error', function (err) {
+		if (err.errno.indexOf('ECONNREFUSED') > -1) {
+			presentationbridge_status = 'econnrefused';
+			SendStatusMessage();
+			trayMenuItems[1].label = 'Connection Refused: ' + ip + ':' + port;
+			buildTray();
+		}
+		else if (err.errno.indexOf('ETIMEDOUT') > -1) {
+			presentationbridge_status = 'etimedout';
+			SendStatusMessage();
+			trayMenuItems[1].label = 'Connection Timed Out: ' + ip + ':' + port;
+			buildTray();
+		}
 	});
 
 	bridgeIO.on('disconnect', function() {
@@ -446,6 +552,7 @@ function turnOnCommands() {
 function turnOffLyrics() {
 	lyrics_on = false;
 	console.log('Turning off all cloud lyrics.');
+	clearLyrics();
 	trayMenuItems[5].label = 'Turn On Lyrics';
 	trayMenuItems[5].click = function () { turnOnLyrics(); }
 	buildTray();
@@ -459,20 +566,16 @@ function turnOnLyrics() {
 	buildTray();
 }
 
-function openSettings() {
-	if (mainWindow !== undefined) {
-		if (mainWindow.isMinimized()) {
-			mainWindow.restore();
-		}
-
-		mainWindow.show();
-	}
-	else {
-		mainWindow = createMainWindow();
+function clearLyrics() {
+	if (bridgeConnected) {
+		bridgeIO.emit('current_slide', config.get('presentationbridgeID'), '');
+		bridgeIO.emit('current_slide_notes', config.get('presentationbridgeID'), '');
+		bridgeIO.emit('next_slide', config.get('presentationbridgeID'), '');
+		bridgeIO.emit('next_slide_notes', config.get('presentationbridgeID'), '');
 	}
 }
-
 function handleStageDisplayMessage(message) {
+
 	var objData = JSON.parse(message);
 	switch(objData.acn) {
 		case 'ath':
@@ -493,10 +596,11 @@ function handleStageDisplayMessage(message) {
 					if (lyrics_on) {
 						if (bridgeConnected) {
 							bridgeIO.emit('current_slide', config.get('presentationbridgeID'), objData.ary[i].txt);
+							console.log('cs: '+ objData.ary[i].txt)
 						}
 					}
-					if (mainWindow) {
-						mainWindow.webContents.send('cs', objData.ary[i].txt);
+					if (monitorWindow) {
+						monitorWindow.webContents.send('cs', objData.ary[i].txt);
 					}
 				}
 				if (objData.ary[i].acn === 'csn') {
@@ -507,8 +611,8 @@ function handleStageDisplayMessage(message) {
 							bridgeIO.emit('current_slide_notes', config.get('presentationbridgeID'), objData.ary[i].txt);
 						}
 					}
-					if (mainWindow) {
-						mainWindow.webContents.send('csn', objData.ary[i].txt);
+					if (monitorWindow) {
+						monitorWindow.webContents.send('csn', objData.ary[i].txt);
 					}
 				}
 				if (objData.ary[i].acn === 'ns') {
@@ -518,8 +622,8 @@ function handleStageDisplayMessage(message) {
 							bridgeIO.emit('next_slide', config.get('presentationbridgeID'), objData.ary[i].txt);
 						}
 					}
-					if (mainWindow) {
-						mainWindow.webContents.send('ns', objData.ary[i].txt);
+					if (monitorWindow) {
+						monitorWindow.webContents.send('ns', objData.ary[i].txt);
 					}
 				}
 				if (objData.ary[i].acn === 'nsn') {
@@ -529,8 +633,8 @@ function handleStageDisplayMessage(message) {
 							bridgeIO.emit('next_slide_notes', config.get('presentationbridgeID'), objData.ary[i].txt);
 						}
 					}
-					if (mainWindow) {
-						mainWindow.webContents.send('nsn', objData.ary[i].txt);
+					if (monitorWindow) {
+						monitorWindow.webContents.send('nsn', objData.ary[i].txt);
 					}
 				}
 			}
@@ -667,6 +771,7 @@ function parseStageDisplayMessage(text) {
 						sendHttpMessage(commandObj);
 						break;
 					case 'companion':
+					case 'cbp':
 						//"companion:1,2"
 						commandObj.bank = parameters[0];
 						commandObj.button = parameters[1];
@@ -750,34 +855,54 @@ function sendHttpMessage(httpObj) {
 	}
 }
 
-function sendCompanionMessage(companionObj) {
+function createCompanionConnection() { 
+	if (config.get('plugin_companion')) {
+		companionClient = new net.createConnection(51234, config.get('companionIP'));
+			console.log('Connecting to Companion.');
+
+		companionClient.on('connect', () => {
+			console.log('Companion Connected')
+		})
+		companionClient.on('timeout', () => {
+			console.log('Companion Connection timeout')
+			companionClient.destroy()
+			companionClient = undefined
+		})
+		companionClient.on('error', (err) => {
+			console.log('Companion Connection error, re-connecting in 5 seconds: ' + err)
+			setTimeout(createCompanionConnection, 5000)
+		})
+		companionClient.on('data', (data) => {
+			console.log('Received from Companion: ' + data)
+		})
+		companionClient.on('close', () => {
+			console.log('Companion Connection closed')
+			companionClient.destroy()
+			companionClient = undefined
+		})
+
+	}
+}
+function sendCompanionMessage(companionObj) { 
 	if (commands_on) {
 		if (config.get('plugin_companion')) {
+			if (companionClient === undefined) {
+				createCompanionConnection();
+			}
 			let bank = companionObj.bank;
 			let button = companionObj.button;
-
-			let companionClient = new net.Socket();
-			companionClient.connect(51234, config.get('companionIP'), function() {
-				console.log('Connected to Companion. Sending Button Press.');
+			if  (companionClient !== undefined) {
+				console.log('Companion Button Press: ' + bank + ',' + button)
 				companionClient.write(`BANK-PRESS ${bank} ${button}\r\n`);
-			});
-		
-			companionClient.on('data', function(data) {
-				console.log('Received from Companion: ' + data);
-				companionClient.destroy(); // kill client after server's response
-			});
-		
-			companionClient.on('close', function() {
-				console.log('Companion connection closed');
-			});
+			}	
 		}
 	}
 }
 
 function SendStatusMessage() {
-	if (mainWindow) {
-		mainWindow.webContents.send('propresenter_status', propresenter_status);
-		mainWindow.webContents.send('presentationbridge_status', presentationbridge_status);
+	if (settingsWindow) {
+		settingsWindow.webContents.send('propresenter_status', propresenter_status);
+		settingsWindow.webContents.send('presentationbridge_status', presentationbridge_status);
 	}
 }
 
@@ -818,5 +943,9 @@ ipcMain.on('presentationbridge_connect', function (event, host, port, id, passwo
 });
 
 ipcMain.on('presentationbridge_disconnect', function (event) {
+	presentationbridge_disconnect();
+});
+
+ipcMain.on('presentationbridge_force_disconnect', function (event) {
 	presentationbridge_disconnect();
 });

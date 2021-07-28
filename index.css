@@ -28,9 +28,25 @@ header {
 }
 
 header h1 {
-	font-size: 60px;
+	font-size: 50px;
 	font-weight: 200;
 	margin: 0;
 	padding: 0;
 	opacity: 0.7;
+}
+header h2, h3 {
+	width: 50%;
+	display: inline;
+}
+
+header h2 { font-size: 30px}
+header h3 { font-size: 15px}
+
+.vertical-space {
+	margin-top: 3px;
+}
+
+.horizontal-line {
+    border-top: 4px solid #000000; 
+	margin-bottom: 3px;
 }
