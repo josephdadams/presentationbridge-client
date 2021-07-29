@@ -647,16 +647,16 @@ function handleStageDisplayMessage(message) {
 function parseStageDisplayMessage(text) {
 	if (text !== '') {
 		console.log('Stage Display Message: ' + text);
-		let commands = text.split(';');
+		let commands = text.replace(/\s/g, "").split(';');
 		for (let i = 0; i < commands.length; i++) {
-			let command = commands[i].substring(0, commands[i].indexOf(':'));
+			let command = commands[i].substring(0, commands[i].indexOf(':'))
 			console.log('Command: ' + command);
 			let parameters = commands[i].substring(commands[i].indexOf(':')+1).split(',');
 			console.log('Parameters: ' + parameters);
 	
 			let commandObj = {};
 	
-			if (parameters) {
+			if (command !== '' && parameters) {
 				switch(command.toLowerCase()) {
 					case 'noteon':
 						//"noteon:0,55,100" Note On Command, Channel 1 (zero based), Note 55, Velocity 100
@@ -776,6 +776,15 @@ function parseStageDisplayMessage(text) {
 						commandObj.bank = parameters[0];
 						commandObj.button = parameters[1];
 						sendCompanionMessage(commandObj);
+						break;
+					case 'logo':
+						//"logo:on"
+						if (parameters[0].toLowerCase() === 'on') {
+							presentationbridge_gotologo();
+						} 
+						else {
+							presentationbridge_turnofflogo();
+						}
 						break;
 					default:
 						console.log('Invalid command');
