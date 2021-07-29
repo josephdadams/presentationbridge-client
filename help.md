@@ -162,9 +162,17 @@ Example: `http:get,http://www.techministry.blog` : This would perform an HTTP GE
 
 ## Companion Button Press
 
-Format: `companion:[bank],[button]`
+Format: `companion:[bank],[button]` or `cbp:[bank],[button]`
 
 * `bank`: The page in Companion where the button is
 * `button`: The button on the page that you wish to press
 
 Example: `companion:1,2` : This would press Button 2 on Page 1.
+
+## Turn bridge logo on or off
+
+Format: `logo:[switch]`
+
+* `switch`: Either `on` or `off`
+
+Example: `logo:on` : To turn the logo on.
