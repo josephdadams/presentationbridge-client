@@ -3,13 +3,13 @@ const Store = require('electron-store');
 
 module.exports = new Store({
 	defaults: {
-		propresenterIP: '192.168.11.75',
+		propresenterIP: '127.0.0.1',
 		propresenterPort: '49610',
-		propresenterPassword: 'control22',
-		presentationbridgeHost: 'fglyrics.com',
+		propresenterPassword: '',
+		presentationbridgeHost: '',
 		presentationbridgePort: '80',
-		presentationbridgeID: '5eaf62b6c',
-		presentationbridgePassword: 'test22',
+		presentationbridgeID: '',
+		presentationbridgePassword: '',
 		midirelayIP: '127.0.0.1',
 		midirelayPort: '4000',
 		midirelayMIDIPort: 'loopMIDI Port',
