@@ -1,7 +1,7 @@
 'use strict';
 const path = require('path');
-const {app, BrowserWindow, Menu, Tray, ipcMain, nativeImage} = require('electron');
-// const {autoUpdater} = require('electron-updater');
+const {app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, dialog } = require('electron');
+const {autoUpdater} = require('electron-updater');
 const {is} = require('electron-util');
 const unhandled = require('electron-unhandled');
 const debug = require('electron-debug');
@@ -92,17 +92,6 @@ var tray = null;
 
 // Note: Must match `build.appId` in package.json
 app.setAppUserModelId('com.techministry.presentationbridgeclient');
-
-// Uncomment this before publishing your first version.
-// It's commented out as it throws an error if there are no published versions.
-// if (!is.development) {
-// 	const FOUR_HOURS = 1000 * 60 * 60 * 4;
-// 	setInterval(() => {
-// 		autoUpdater.checkForUpdates();
-// 	}, FOUR_HOURS);
-//
-// 	autoUpdater.checkForUpdates();
-// }
 
 // Prevent windows from being garbage collected
 let settingsWindow;
@@ -244,8 +233,47 @@ const openMonitor = async () => {
 	}
 }
 
+function checkForUpdates() {
+    autoUpdater.autoDownload = false;
+    autoUpdater.autoInstallOnAppQuit = false;
+    autoUpdater.checkForUpdates();
+    autoUpdater.on("update-available", () => {
+        dialog.showMessageBox(mainWindow, {
+            title: "Update Available",
+            message: "There's an update available for PresentationBridge Client. Do you want to download and install it?",
+            buttons: ["Update", "Cancel"],
+        }).then((v) => {
+            if (v.response == 0) {
+                dialog.showMessageBox(mainWindow, {
+                    title: "Downloading update",
+                    message: "The update is being downloaded in the background. Once finished, you will be prompted to save your work and restart PresentationBridge Client."
+                });
+                autoUpdater.downloadUpdate();
+            }
+        });
+    });
+    autoUpdater.on("update-downloaded", () => {
+        dialog.showMessageBox(null, {
+            title: "Update downloaded",
+            message: "The update has been downloaded. Save your work and then press the Update button.",
+            buttons: ["Update"],
+        }).then((r) => {
+            if (r.response == 0) {
+                autoUpdater.quitAndInstall();
+            }
+        });
+    });
+}
+
 (async () => {
 	await app.whenReady();
+	if (!is.development) {
+		const FOUR_HOURS = 1000 * 60 * 60 * 4;
+		setInterval(() => {
+			checkForUpdates();
+		}, FOUR_HOURS);
+		checkForUpdates();
+	}
 	settingsWindow = await createsettingsWindow();
 	monitorWindow = await createmonitorWindow();
 	//tray = new Tray(path.join(__dirname,'cloudTemplate.png'));
