@@ -1,7 +1,7 @@
 {
 	"name": "presentationbridge-client",
 	"productName": "PresentationBridge Client",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"description": "Links data from your Presentation/lyrics software to other software.",
 	"license": "MIT",
 	"repository": "josephdadams/presentationbridge-client",
@@ -81,6 +81,7 @@
 				"deb"
 			],
 			"category": "Network;Chat"
-		}
+		},
+		"extraFiles": ["help.md"]
 	}
 }
