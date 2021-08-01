@@ -276,7 +276,7 @@ function checkForUpdates() {
 	}
 	settingsWindow = await createsettingsWindow();
 	monitorWindow = await createmonitorWindow();
-	//tray = new Tray(path.join(__dirname,'cloudTemplate.png'));
+	
 	tray = new Tray(path.join(__dirname,'Bridge-icon.png'));
 	buildTray();
 	findHosts();
@@ -336,7 +336,7 @@ function mdns_propresenter_addhost(host, ip, port, name) {
 		if (mdns_propresenter_hosts[i].ip === ip) {
 			isFound = true;
 			mdns_propresenter_hosts[i].port = port;
-			mdns_propresenter_hosts[i].name = name.substring(0, name.indexOf('.'));
+			mdns_propresenter_hosts[i].name = name ? name.substring(0, name.indexOf('.')) : '';
 			break;
 		}
 	}
@@ -346,7 +346,7 @@ function mdns_propresenter_addhost(host, ip, port, name) {
 		hostObj.name = host;
 		hostObj.ip = ip;
 		hostObj.port = port;
-		hostObj.name = name.substring(0, name.indexOf('.'));
+		hostObj.name = name ? name.substring(0, name.indexOf('.')) : '';
 		mdns_propresenter_hosts.push(hostObj);
 	}
 
