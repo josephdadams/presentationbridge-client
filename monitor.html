@@ -12,15 +12,15 @@
 		<script>
 			
 			const ipc = require('electron').ipcRenderer;
-			const remote = require('electron').remote;
+			//const remote = require('electron').remote;
 			const { shell } = require('electron')
 			
 			const config = require('./config');
 
-			const marked = require("marked");
-			const helpFile = './help.md';
+			//const marked = require("marked");
+			//const helpFile = './help.md';
 
-			const fs = require('fs')
+			//const fs = require('fs')
 
 			ipc.on('cs', function(event, cs) {
 				$('#divCurrentSlide').html(cs.replace(/\n/g, '<br />'));
@@ -37,6 +37,11 @@
 			ipc.on('nsn', function(event, nsn) {
 				processSlideNotes('nsn', nsn);
 			});
+
+			$( document ).ready(function() {
+				ipc.send('monitor_status');
+			});
+
 			function processSlideNotes(type, text) {
 				switch(type) {
 					case 'csn':
@@ -276,26 +281,6 @@
 			<div class='row'><b>Next Slide:</b></div>
 			<div class='row' style='height: 150px;border: #eeeeee 1px solid;' id='divNextSlide'></div>
 			<div class='row' id='divNextSlideNotes'></div>
-
-			<div class="modal fade" id="helpModal" tabindex="-1" role="dialog" aria-labelledby="helpModalLabel" aria-hidden="true">
-				<div class="modal-dialog" role="document">
-				  <div class="modal-content">
-					<div class="modal-header">
-					  <h5 class="modal-title" id="helpModalLabel">Help</h5>
-					  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-						<span aria-hidden="true">&times;</span>
-					  </button>
-					</div>
-					<div class="modal-body" id='divHelpBody'>
-					  
-					</div>
-					<div class="modal-footer">
-						<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-					  </div>
-				  </div>
-				</div>
-			  </div>
-			<footer></footer>
 		</div>
 	</body>
 </html>

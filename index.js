@@ -10,13 +10,14 @@ const WebSocket = require('ws');
 
 //mdns variables
 const mdns = require('mdns-js');
-var mdns_browser_propresenter = null; //mdns browser variable
-var mdns_browser_midirelay = null; //mdns browser variable
+var mdns_window_timer = undefined;
+var mdns_browser_propresenter = undefined; //mdns browser variable
+var mdns_browser_midirelay = undefined; //mdns browser variable
 var mdns_propresenter_hosts = []; //global array of found hosts through mdns
 var mdns_midirelay_hosts = []; //global array of found hosts through mdns
 
 //ProPresenter variables
-var propresenter_socket = null;
+var propresenter_socket = undefined;
 var propresenter_status = 'disconnected';
 var propresenter_cs = '';
 var propresenter_csn = '';
@@ -155,7 +156,7 @@ const createsettingsWindow = async () => {
 		height: 825,
 		webPreferences: {
 			nodeIntegration: true,
-			enableRemoteModule: true
+			//enableRemoteModule: true
 		}
 	});
 
@@ -198,7 +199,7 @@ const createmonitorWindow = async () => {
 		height: 800,
 		webPreferences: {
 			nodeIntegration: true,
-			enableRemoteModule: true
+			//enableRemoteModule: true
 		}
 	});
 
@@ -230,6 +231,7 @@ const openMonitor = async () => {
 	}
 	else {
 		monitorWindow = await createmonitorWindow();
+		monitorWindow.show();
 	}
 }
 
@@ -296,10 +298,19 @@ function buildTray() {
 	tray.setContextMenu(trayContextMenu);
 }
 
+function mdns_close_browsers(){
+	mdns_browser_propresenter.stop();
+	mdns_browser_midirelay.stop();
+
+	mdns_browser_propresenter = undefined;
+	mdns_browser_midirelay = undefined;
+}
+
 function findHosts() {
+
 	mdns_browser_propresenter = mdns.createBrowser(mdns.tcp('pro7stagedsply'));
 	mdns_browser_midirelay = mdns.createBrowser(mdns.tcp('midi-relay'));
-	//mdns_browser_midirelay = mdns.createBrowser();
+	mdns_window_timer = setTimeout(mdns_close_browsers, 5000)
 
 	mdns_browser_propresenter.on('ready', function onReady() {
 		mdns_browser_propresenter.discover();
@@ -382,6 +393,7 @@ function mdns_midirelay_addhost(host, ip, port) {
 	console.log('mdns hosts', mdns_midirelay_hosts);
 }
 
+
 function propresenter_connect() {
 	let ip = config.get('propresenterIP');
 	let port = config.get('propresenterPort');
@@ -413,7 +425,6 @@ function propresenter_connect() {
 
 	propresenter_socket.on('message', function(message) {
 		// Handle the stage display message received from ProPresenter
-		console.log('PP message:' + message)
 		handleStageDisplayMessage(message);
 	});
 
@@ -435,6 +446,7 @@ function propresenter_connect() {
 	propresenter_socket.on('close', function(code, reason) {
 		console.log('ProPresenter disconnected.');
 		//console.log('Current State: ' + propresenter_status);
+
 		if (propresenter_status !== 'force_disconnected') {
 			setTimeout(propresenter_reconnect, 5000); //attempt to reeconnect until the user forces it to stop
 		}
@@ -894,6 +906,10 @@ function sendHttpMessage(httpObj) {
 
 function createCompanionConnection() { 
 	if (config.get('plugin_companion')) {
+		if (companionClient !== undefined){
+			companionClient.destroy()
+			companionClient = undefined
+		}
 		companionClient = new net.createConnection(51234, config.get('companionIP'));
 			console.log('Connecting to Companion.');
 
@@ -946,6 +962,9 @@ function SendStatusMessage() {
 //IPCs
 ipcMain.on('propresenter_status', function (event) {
 	event.sender.send('propresenter_status', propresenter_status);
+});
+
+ipcMain.on('monitor_status', function (event) {
 	event.sender.send('cs', propresenter_cs);
 	event.sender.send('csn', propresenter_csn);
 	event.sender.send('ns', propresenter_ns);
@@ -960,6 +979,10 @@ ipcMain.on('mdns_midirelay_hosts', function (event) {
 	event.sender.send('mdns_midirelay_hosts', mdns_midirelay_hosts);
 });
 
+ipcMain.on('mdns_rescan', function (event) {
+	findHosts();
+});
+
 ipcMain.on('propresenter_connect', function (event, ip, port, password) {
 	propresenter_disconnect(false);
 	propresenter_status = 'connecting';
@@ -971,7 +994,7 @@ ipcMain.on('propresenter_disconnect', function (event) {
 	propresenter_disconnect(false);
 });
 
-ipcMain.on('propresenter_disconnect', function (event) {
+ipcMain.on('propresenter_force_disconnect', function (event) {
 	propresenter_disconnect(false);
 });
 
