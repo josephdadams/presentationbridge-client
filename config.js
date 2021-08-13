@@ -18,6 +18,7 @@ module.exports = new Store({
 		plugin_vista: true,
 		plugin_http: true,
 		plugin_companion: true,
+		switch_mdns: true,
 		switch_settings: true,
 		switch_monitor: true
 	}

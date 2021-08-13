@@ -204,11 +204,13 @@
 				$('#txtPresentationBridgePassword').val(config.get('presentationbridgePassword'));
 
 				$('#switchMidiRelay').prop('checked', config.get('plugin_midirelay'));
+				plugin_enable('midirelay')
 				$('#txtMIDIRelayIP').val(config.get('midirelayIP'));
 				$('#txtMIDIRelayPort').val(config.get('midirelayPort'));
 				$('#txtMIDIRelayMIDIPort').val(config.get('midirelayMIDIPort'));
 
 				$('#switchVista').prop('checked', config.get('plugin_vista'));
+				plugin_enable('vista')
 				$('#txtVistaIP').val(config.get('vistaIP'));
 				$('#txtVistaPort').val(config.get('vistaPort'));
 				$('#txtVistaMIDIPort').val(config.get('vistaMIDIPort'));
@@ -216,8 +218,10 @@
 				$('#switchHttp').prop('checked', config.get('plugin_http'));
 
 				$('#switchCompanion').prop('checked', config.get('plugin_companion'));
+				plugin_enable('companion')
 				$('#txtCompanionIP').val(config.get('companionIP'));
 
+				$('#switchMdns').prop('checked', config.get('switch_mdns'));
 				$('#switchSettings').prop('checked', config.get('switch_settings'));
 				$('#switchMonitor').prop('checked', config.get('switch_monitor'));
 
@@ -312,6 +316,7 @@
 
 			function plugin_enable(plugin) {
 				let enable = '';
+				let divTarget = '#' + plugin + 'Settings'
 
 				switch(plugin) {
 					case 'midirelay':
@@ -329,13 +334,16 @@
 					default:
 						break;
 				}
-
+				enable ? $(divTarget).collapse('show') : $(divTarget).collapse('hide')
 				config.set('plugin_' + plugin, enable);
 			}
 			function switch_enable(item) {
 				let enable = '';
 
 				switch(item) {
+					case 'mdns':
+						enable = $('#switchMdns').prop('checked');
+						break;
 					case 'settings':
 						enable = $('#switchSettings').prop('checked');
 						break;
@@ -486,9 +494,9 @@
 						<div id='divMidiRelayHosts'></div>
 					</div>
 				</div>
-				<div class='form-row'>
+				<div class='form-row collapse' id="midirelaySettings">
 					<div class='form-group col-md-4'>
-						<div class="input-group">
+						<div class="input-group input-group-sm">
 							<div class="input-group-prepend">
 								<label class="input-group-text" for="txtMIDIRelayMIDIPort">MIDI Port</label>
 							</div>	
@@ -496,7 +504,7 @@
 						</div>
 					</div>
 					<div class='form-group col-md-4'>
-						<div class="input-group">
+						<div class="input-group input-group-sm">
 							<div class="input-group-prepend">
 								<label class="input-group-text" for="txtMIDIRelayIP">IP</label>
 							</div>
@@ -504,7 +512,7 @@
 						</div>
 					</div>
 					<div class='form-group col-md-4'>
-						<div class="input-group">
+						<div class="input-group input-group-sm">
 							<div class="input-group-prepend">
 								<label class="input-group-text" for="txtMIDIRelayPort">Port</label>
 							</div>	
@@ -523,9 +531,9 @@
 							</div>
 					</div>
 				</div>
-				<div class='form-row'>
+				<div class='form-row collapse' id="vistaSettings">
 					<div class='form-group col-md-4'>
-						<div class="input-group">
+						<div class="input-group input-group-sm">
 							<div class="input-group-prepend">
 								<label class="input-group-text" for="txtVistaMIDIPort">MIDI Port</label>
 							</div>	
@@ -533,7 +541,7 @@
 						</div>
 					</div>
 					<div class='form-group col-md-4'>
-						<div class="input-group">
+						<div class="input-group input-group-sm">
 							<div class="input-group-prepend">
 								<label class="input-group-text" for="txtVistaIP">IP</label>
 							</div>
@@ -541,7 +549,7 @@
 						</div>
 					</div>
 					<div class='form-group col-md-4'>
-						<div class="input-group">
+						<div class="input-group input-group-sm">
 							<div class="input-group-prepend">
 								<label class="input-group-text" for="txtVistaPort">Port</label>
 							</div>	
@@ -551,7 +559,7 @@
 				</div>
 			</section>
 			<section>
-				<div class='horizontal-line'></div>
+				<div class='horizontal-line' style="padding-bottom: 4px;"></div>
 				<div class='form-row'>
 					<div class='form-group col-md-4'>
 						<div class="custom-control custom-switch">
@@ -559,8 +567,8 @@
 							<label class="custom-control-label" for="switchCompanion"><b>Companion Buttons</b></label>
 							</div>
 					</div>
-					<div class='form-group col-md-4'>
-						<div class="input-group">
+					<div class='form-group col-md-4 collapse' id="companionSettings">
+						<div class="input-group input-group-sm">
 							<div class="input-group-prepend">
 								<label class="input-group-text" for="txtCompanionIP">IP</label>
 							</div>
@@ -579,37 +587,44 @@
 						</div>
 				</div>
 			</div>
-			</section>
-			<section>
-				<div class='horizontal-line'></div>
-				<div class='row'>
-				<div class='form-group col-md-1'>
+		</section>
+		<section>
+			<div class='horizontal-line'></div>
+			<div class='row'>
+				<div class='form-group col-md-1 d-flex align-items-center justify-content-start'>
 					<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#helpModal">
 						Help
 					</button>
 				</div>
-				<div class='form-group col-md-2'>
+				<div class='form-group col-md-2 d-flex align-items-center justify-content-center'>
 					<div class="text-right">
 						<button type="button" id="btnSave" class="btn btn-info" data-toggle="tooltip" data-placement="top" title="Re-scan mdns" onclick='mdnsRescan();'>mdns</button>
 					</div>
 				</div>
-				<div class='form-group col-md-2'><b>At start-up:</b></div>
-				<div class='form-group col-md-2'>
-					<div class="custom-control custom-switch">
-						<input type="checkbox" class="custom-control-input" id="switchSettings" onClick="switch_enable('settings');">
-						<label class="custom-control-label" for="switchSettings"><b>Settings</b></label>
+				<div class='form-group col-md-6' style="text-align:center"><b>Start-up mdns scan and window visibility</b>
+					<div class='row'>
+						<div class='form-group col-md-4'>
+							<div class="custom-control custom-switch">
+								<input type="checkbox" class="custom-control-input" id="switchMdns" onClick="switch_enable('mdns');">
+								<label class="custom-control-label" for="switchMdns"><b>mdns</b></label>
+							</div>
 						</div>
-				</div>
-				<div class='form-group col-md-2'>
-					<div class="custom-control custom-switch">
-						<input type="checkbox" class="custom-control-input" id="switchMonitor" onClick="switch_enable('monitor');">
-						<label class="custom-control-label" for="switchMonitor"><b>Monitor</b></label>
+						<div class='form-group col-md-4'>
+							<div class="custom-control custom-switch">
+								<input type="checkbox" class="custom-control-input" id="switchSettings" onClick="switch_enable('settings');">
+								<label class="custom-control-label" for="switchSettings"><b>Settings</b></label>
+							</div>
 						</div>
-				</div>
-				<div class='form-group col-md-3'>
-					<div class="text-right">
-						<button type="button" class="btn btn-primary" id="btnSave" onclick='save();'>Save Settings</button>
+						<div class='form-group col-md-4'>
+							<div class="custom-control custom-switch">
+								<input type="checkbox" class="custom-control-input" id="switchMonitor" onClick="switch_enable('monitor');">
+								<label class="custom-control-label" for="switchMonitor"><b>Monitor</b></label>
+							</div>
+						</div>
 					</div>
+				</div>
+				<div class='form-group col-md-3 d-flex align-items-center justify-content-end'>
+						<button type="button" class="btn btn-primary" id="btnSave" onclick='save();'>Save Settings</button>
 				</div>
 			</div>
 		</section>

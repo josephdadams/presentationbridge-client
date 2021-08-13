@@ -47,6 +47,6 @@ header h3 { font-size: 15px}
 }
 
 .horizontal-line {
-    border-top: 4px solid #000000; 
-	margin-bottom: 3px;
+    border-top: 3px solid #000000; 
+	margin-bottom: 1px;
 }

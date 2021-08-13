@@ -10,7 +10,7 @@ const WebSocket = require('ws');
 
 //mdns variables
 const mdns = require('mdns-js');
-var mdns_window_timer = undefined;
+var mdns_browse_window_timer = undefined;
 var mdns_browser_propresenter = undefined; //mdns browser variable
 var mdns_browser_midirelay = undefined; //mdns browser variable
 var mdns_propresenter_hosts = []; //global array of found hosts through mdns
@@ -163,6 +163,7 @@ const createsettingsWindow = async () => {
 	win.on('ready-to-show', () => {
 		if (config.get('switch_settings')) {
 			win.show();
+			SendStatusMessage();
 		}
 	});
 
@@ -281,7 +282,9 @@ function checkForUpdates() {
 	
 	tray = new Tray(path.join(__dirname,'Bridge-icon.png'));
 	buildTray();
-	findHosts();
+	if (config.get('switch_mdns')) {
+		findHosts();
+	}
 
 	if (config.get('propresenterIP') !== '') {
 		propresenter_connect();
@@ -310,7 +313,7 @@ function findHosts() {
 
 	mdns_browser_propresenter = mdns.createBrowser(mdns.tcp('pro7stagedsply'));
 	mdns_browser_midirelay = mdns.createBrowser(mdns.tcp('midi-relay'));
-	mdns_window_timer = setTimeout(mdns_close_browsers, 5000)
+	mdns_browse_window_timer = setTimeout(mdns_close_browsers, 5000) // stop browser after a discovery period to protect from low level memory leak error that can occur in rare circumstances
 
 	mdns_browser_propresenter.on('ready', function onReady() {
 		mdns_browser_propresenter.discover();
