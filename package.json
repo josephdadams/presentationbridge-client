@@ -2,7 +2,7 @@
 	"name": "presentationbridge-client",
 	"productName": "PresentationBridge Client",
 	"version": "1.0.7",
-	"description": "Links data from your Presentation/lyrics software to other software.",
+	"description": "Links data from your Presentation / lyrics software to other software.",
 	"license": "MIT",
 	"repository": "josephdadams/presentationbridge-client",
 	"author": {
