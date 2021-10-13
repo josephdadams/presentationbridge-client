@@ -22,7 +22,7 @@
 	},
 	"dependencies": {
 		"@popperjs/core": "^2.9.2",
-		"axios": "^0.21.1",
+		"axios": "^0.21.2",
 		"bootstrap": "^4.6.0",
 		"electron-context-menu": "^0.15.0",
 		"electron-debug": "^3.0.0",
