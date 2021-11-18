@@ -155,8 +155,9 @@ const createsettingsWindow = async () => {
 		width: 1000,
 		height: 825,
 		webPreferences: {
+			contextIsolation: false,
 			nodeIntegration: true,
-			//enableRemoteModule: true
+			enableRemoteModule: true
 		}
 	});
 
@@ -199,8 +200,9 @@ const createmonitorWindow = async () => {
 		width: 1000,
 		height: 800,
 		webPreferences: {
+			contextIsolation: false,
 			nodeIntegration: true,
-			//enableRemoteModule: true
+			enableRemoteModule: true
 		}
 	});
 
@@ -282,6 +284,7 @@ function checkForUpdates() {
 	
 	tray = new Tray(path.join(__dirname,'Bridge-icon.png'));
 	buildTray();
+
 	if (config.get('switch_mdns')) {
 		findHosts();
 	}
@@ -530,6 +533,7 @@ function presentationbridge_connect() {
 	});
 
 	bridgeIO.on('error', function (err) {
+		console.log('Bridge Connect Error')
 		if (err.errno.indexOf('ECONNREFUSED') > -1) {
 			presentationbridge_status = 'econnrefused';
 			SendStatusMessage();
@@ -543,7 +547,7 @@ function presentationbridge_connect() {
 			buildTray();
 		}
 	});
-
+ 
 	bridgeIO.on('disconnect', function() {
 		bridgeConnected = false;
 		console.log('Disconnected from Presentation Bridge Server.');
@@ -640,6 +644,9 @@ function handleStageDisplayMessage(message) {
 						if (bridgeConnected) {
 							bridgeIO.emit('current_slide', config.get('presentationbridgeID'), objData.ary[i].txt);
 							console.log('cs: '+ objData.ary[i].txt)
+							if(config.get('switch_PPimages')) {
+								GetPPImage(objData.ary[i].uid)  
+							}
 						}
 					}
 					if (monitorWindow) {
@@ -648,14 +655,21 @@ function handleStageDisplayMessage(message) {
 				}
 				if (objData.ary[i].acn === 'csn') {
 					propresenter_csn = objData.ary[i].txt;
-					parseStageDisplayMessage(objData.ary[i].txt);
+					// separate commands in {} within notes from the rest of the text
+					let notes = objData.ary[i].txt.toString().replace(/\{.*?\}/g,"")
+					let commands = objData.ary[i].txt.toString().match(/[^{\}]+(?=})/g)
+					commands = commands === null ? '' : commands.join()
+
+					if (commands !== '') {
+						parseStageDisplayMessage(commands);
+					}
 					if (lyrics_on) {
 						if (bridgeConnected) {
-							bridgeIO.emit('current_slide_notes', config.get('presentationbridgeID'), objData.ary[i].txt);
+							bridgeIO.emit('current_slide_notes', config.get('presentationbridgeID'), notes);
 						}
 					}
 					if (monitorWindow) {
-						monitorWindow.webContents.send('csn', objData.ary[i].txt);
+						monitorWindow.webContents.send('csn', commands);
 					}
 				}
 				if (objData.ary[i].acn === 'ns') {
@@ -671,13 +685,17 @@ function handleStageDisplayMessage(message) {
 				}
 				if (objData.ary[i].acn === 'nsn') {
 					propresenter_nsn = objData.ary[i].txt;
+					// separate commands in {} within notes from the rest of the text
+					let notes = objData.ary[i].txt.toString().replace(/\{.*?\}/g,"")
+					let commands = objData.ary[i].txt.toString().match(/[^{\}]+(?=})/g)
+					commands = commands === null ? '' : commands.join()
 					if (lyrics_on) {
 						if (bridgeConnected) {
-							bridgeIO.emit('next_slide_notes', config.get('presentationbridgeID'), objData.ary[i].txt);
+							bridgeIO.emit('next_slide_notes', config.get('presentationbridgeID'), notes);
 						}
 					}
 					if (monitorWindow) {
-						monitorWindow.webContents.send('nsn', objData.ary[i].txt);
+						monitorWindow.webContents.send('nsn', commands);
 					}
 				}
 			}
@@ -688,7 +706,7 @@ function handleStageDisplayMessage(message) {
 }
 
 function parseStageDisplayMessage(text) {
-	if (text !== '') {
+	if (text !== '' && text !== null) {
 		console.log('Stage Display Message: ' + text);
 		let commands = text.replace(/\s/g, "").split(';');
 		for (let i = 0; i < commands.length; i++) {
@@ -907,8 +925,34 @@ function sendHttpMessage(httpObj) {
 	}
 }
 
+function GetPPImage(slideUID) {
+	if (commands_on) {
+		const ip = config.get('propresenterIP');
+		const port = config.get('propresenterPort');
+				
+		const url = ('http://' + ip + ':' + port + '/stage/image/' + slideUID);
+
+		let options = {
+			method: 'GET',
+			url: url,
+			responseType: 'arraybuffer'
+		};
+	
+		axios(options)
+		.then(function (response) {
+			if (response.data !== undefined && response.data !== null) {
+ 				bridgeIO.emit('current_slide_image', config.get('presentationbridgeID'), Buffer.from(response.data, 'binary').toString('base64'))
+			}
+		})
+		.catch(function (error) {
+			console.log('ProPresenter Image GET error', error.errno);
+		});
+	}
+}
+
 function createCompanionConnection() { 
 	if (config.get('plugin_companion')) {
+		console.log('plugin companion true')
 		if (companionClient !== undefined){
 			companionClient.destroy()
 			companionClient = undefined
@@ -936,7 +980,10 @@ function createCompanionConnection() {
 			companionClient.destroy()
 			companionClient = undefined
 		})
-
+	} else {
+		console.log('Companion Connection closing')
+		companionClient.destroy()
+		companionClient = undefined
 	}
 }
 function sendCompanionMessage(companionObj) { 
@@ -951,7 +998,7 @@ function sendCompanionMessage(companionObj) {
 				console.log('Companion Button Press: ' + bank + ',' + button)
 				companionClient.write(`BANK-PRESS ${bank} ${button}\r\n`);
 			}	
-		}
+		} 
 	}
 }
 

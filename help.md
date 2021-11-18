@@ -1,19 +1,27 @@
 # Presentation Bridge Client
 
-This software is designed to work with your presentation lyrics software, accessing slide data in real time and then performing custom actions. It integrates with PresentationBridge, a free server program that allows you to send lyric data to end devices such as phones, tablets, and tv sticks through the built in web browser on those devices. In addition, this Client can also:
+This software is designed to work with your presentation lyrics software, accessing slide data in real time and then performing custom actions. It integrates with PresentationBridge, a free server program that allows you to send lyric data to end devices such as phones, tablets, and tv sticks through the built in web browser on those devices. 
+
+THe Settings window is used to configure the software for ProPresenter, PresentationBridge, midi-relay, Vista, Companion and HTTP. 
+
+Text on slides is sent to the bridge for display on devices that are connected. Images of the slides will be sent if the 'Send Images' switch in settings is on.
+
+In addition, using the notes section of a slide, this Client can also send commands using midi-relay, HHHTP and Companion:
 * Send MIDI voice messages, using the free program [midi-relay](http://github.com/josephdadams/midi-relay)
 * Make HTTP Requests (GET and POST, with JSON data if needed)
 * Press Companion Buttons using the TCP protocol
 
-## Sending MIDI Relay Messages
-
-The program works by listening to the "current slide notes" data within ProPresenter. If the field contains valid notation, a midi-relay message can be sent.
-
 In general, the format is as follows:
 
-`[midi command type]:[parameter 1],[parameter 2][etc.]`
+`[command type]:[parameter 1],[parameter 2][etc.]`
 
-Each parameter is separated by a semicolon.
+Each parameter is separated by a comma and acommand should be terminated with a semicolon.
+
+The program works by listening to the "current slide notes" data within ProPresenter. If the text contains valid commands embedded in curly brackets then these will be processed. Other text is sent to the stagedisplay bridge.
+
+e.g. 'This text will go to the stage display {noteon:0,55,100; cbp:1,2;}'
+
+## Sending MIDI Relay Messages
 
 ### Supported MIDI Relay Types
 * Note On

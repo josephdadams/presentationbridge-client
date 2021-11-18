@@ -54,7 +54,7 @@
 
 				if (text !== '') {
 					if (text.indexOf(':') > -1) {
-						let commands = text.split(';');
+						let commands = text.replace(/\s/g, "").split(';');
 						for (let i = 0; i < commands.length; i++) {
 							let command = commands[i].substring(0, commands[i].indexOf(':')).toLowerCase();
 							let parameters = commands[i].substring(commands[i].indexOf(':')+1).split(',');					
@@ -181,6 +181,11 @@
 										commandObj.button = parameters[1];
 										buildPill(command, commandObj, type);
 										break;
+									case 'logo':
+										//"logo:on"
+										commandObj.switch = parameters[0];
+										buildPill(command, commandObj, type);
+										break;
 									default:
 										commandObj.text = 'Invalid Command';
 										buildPill(command, commandObj, type);
@@ -245,6 +250,10 @@
 					case 'cbp':
 						tooltipData = 'Bank ' + obj.bank + ', Button ' + obj.button;
 						name = 'Companion Button';
+						break;
+					case 'logo':
+						tooltipData = 'Switch ' + obj.switch;
+						name = 'Logo';
 						break;
 					default:
 						break;

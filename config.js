@@ -6,6 +6,7 @@ module.exports = new Store({
 		propresenterIP: '127.0.0.1',
 		propresenterPort: '49610',
 		propresenterPassword: '',
+		switch_PPimages: false,
 		presentationbridgeHost: '',
 		presentationbridgePort: '80',
 		presentationbridgeID: '',
