@@ -4,7 +4,7 @@ This software is designed to work with your presentation lyrics software, access
 
 THe Settings window is used to configure the software for ProPresenter, PresentationBridge, midi-relay, Vista, Companion and HTTP. 
 
-Text on slides is sent to the bridge for display on devices that are connected. Images of the slides will be sent if the 'Send Images' switch in settings is on.
+Text on slides is sent to the bridge for display on devices that are connected. Images of the slides will be sent if the 'Send Images' switch in settings is on. The stage display shows the slide text and notes for both the current slide and next.
 
 In addition, using the notes section of a slide, this Client can also send commands using midi-relay, HHHTP and Companion:
 * Send MIDI voice messages, using the free program [midi-relay](http://github.com/josephdadams/midi-relay)
@@ -15,11 +15,9 @@ In general, the format is as follows:
 
 `[command type]:[parameter 1],[parameter 2][etc.]`
 
-Each parameter is separated by a comma and acommand should be terminated with a semicolon.
+Each parameter is separated by a comma and a command should be terminated with a semicolon. 
 
-The program works by listening to the "current slide notes" data within ProPresenter. If the text contains valid commands embedded in curly brackets then these will be processed. Other text is sent to the stagedisplay bridge.
-
-e.g. 'This text will go to the stage display {noteon:0,55,100; cbp:1,2;}'
+The program works by listening to the "current slide notes" data within ProPresenter. If the text contains valid commands  then these will be processed. Other text is sent to the stagedisplay bridge.
 
 ## Sending MIDI Relay Messages
 

@@ -21,8 +21,10 @@ var propresenter_socket = undefined;
 var propresenter_status = 'disconnected';
 var propresenter_cs = '';
 var propresenter_csn = '';
+var propresenter_csn_commands = '';
 var propresenter_ns = '';
 var propresenter_nsn = '';
+var propresenter_nsn_commands = '';
 
 const axios = require('axios');
 const socketio = require('socket.io-client');
@@ -643,9 +645,8 @@ function handleStageDisplayMessage(message) {
 					if (lyrics_on) {
 						if (bridgeConnected) {
 							bridgeIO.emit('current_slide', config.get('presentationbridgeID'), objData.ary[i].txt);
-							console.log('cs: '+ objData.ary[i].txt)
 							if(config.get('switch_PPimages')) {
-								GetPPImage(objData.ary[i].uid)  
+								GetProPresenterImage(objData.ary[i].uid)  
 							}
 						}
 					}
@@ -654,23 +655,26 @@ function handleStageDisplayMessage(message) {
 					}
 				}
 				if (objData.ary[i].acn === 'csn') {
-					propresenter_csn = objData.ary[i].txt;
-					// separate commands in {} within notes from the rest of the text
-					let notes = objData.ary[i].txt.toString().replace(/\{.*?\}/g,"")
-					let commands = objData.ary[i].txt.toString().match(/[^{\}]+(?=})/g)
-					commands = commands === null ? '' : commands.join()
+					// separate commands in from notes
+					propresenter_csn = objData.ary[i].txt.toString().replace(/\b[\w\s].*?:.+?;/g,"") 
+					propresenter_csn_commands = objData.ary[i].txt.toString().match(/\b[\w\s].*?:.+?;/g)
 
-					if (commands !== '') {
-						parseStageDisplayMessage(commands);
-					}
-					if (lyrics_on) {
-						if (bridgeConnected) {
-							bridgeIO.emit('current_slide_notes', config.get('presentationbridgeID'), notes);
+					if (propresenter_csn_commands !== null) {
+						if (propresenter_csn_commands.length > 0) {
+							parseStageDisplayMessage(propresenter_csn_commands);
 						}
 					}
+
 					if (monitorWindow) {
-						monitorWindow.webContents.send('csn', commands);
+						monitorWindow.webContents.send('csn', propresenter_csn_commands === null ? '' : propresenter_csn_commands);
 					}
+
+					if (lyrics_on) {
+						if (bridgeConnected) {
+							bridgeIO.emit('current_slide_notes', config.get('presentationbridgeID'), propresenter_csn);
+						}
+					}
+
 				}
 				if (objData.ary[i].acn === 'ns') {
 					propresenter_ns = objData.ary[i].txt;
@@ -684,18 +688,17 @@ function handleStageDisplayMessage(message) {
 					}
 				}
 				if (objData.ary[i].acn === 'nsn') {
-					propresenter_nsn = objData.ary[i].txt;
-					// separate commands in {} within notes from the rest of the text
-					let notes = objData.ary[i].txt.toString().replace(/\{.*?\}/g,"")
-					let commands = objData.ary[i].txt.toString().match(/[^{\}]+(?=})/g)
-					commands = commands === null ? '' : commands.join()
+					propresenter_nsn = objData.ary[i].txt.toString().replace(/\b[\w\s].*?:.+?;/g,"") 
+					propresenter_nsn_commands = objData.ary[i].txt.toString().match(/\b[\w\s].*?:.+?;/g)
+
+					if (monitorWindow) {
+						monitorWindow.webContents.send('nsn', propresenter_nsn_commands === null ? '' : propresenter_nsn_commands);
+					}
+
 					if (lyrics_on) {
 						if (bridgeConnected) {
-							bridgeIO.emit('next_slide_notes', config.get('presentationbridgeID'), notes);
+							bridgeIO.emit('next_slide_notes', config.get('presentationbridgeID'), propresenter_nsn);
 						}
-					}
-					if (monitorWindow) {
-						monitorWindow.webContents.send('nsn', commands);
 					}
 				}
 			}
@@ -705,18 +708,13 @@ function handleStageDisplayMessage(message) {
 	}
 }
 
-function parseStageDisplayMessage(text) {
-	if (text !== '' && text !== null) {
-		console.log('Stage Display Message: ' + text);
-		let commands = text.replace(/\s/g, "").split(';');
+function parseStageDisplayMessage(commands) {
 		for (let i = 0; i < commands.length; i++) {
-			let command = commands[i].substring(0, commands[i].indexOf(':'))
-			console.log('Command: ' + command);
-			let parameters = commands[i].substring(commands[i].indexOf(':')+1).split(',');
-			console.log('Parameters: ' + parameters);
+			let cleanstring = commands[i].replace(/[^\w:,]/g, "")
+			let command = cleanstring.substring(0, cleanstring.indexOf(':')).toLowerCase()
+			let parameters = cleanstring.substring(cleanstring.indexOf(':')+1).split(',');
 	
 			let commandObj = {};
-	
 			if (command !== '' && parameters) {
 				switch(command.toLowerCase()) {
 					case 'noteon':
@@ -848,12 +846,12 @@ function parseStageDisplayMessage(text) {
 						}
 						break;
 					default:
-						console.log('Invalid command');
+						console.log('Invalid command: ' + command);
 						break;
 				}
 			}
 		}
-	}
+
 }
 
 function sendMidiRelayMessage(midiObj) {
@@ -925,7 +923,7 @@ function sendHttpMessage(httpObj) {
 	}
 }
 
-function GetPPImage(slideUID) {
+function GetProPresenterImage(slideUID) {
 	if (commands_on) {
 		const ip = config.get('propresenterIP');
 		const port = config.get('propresenterPort');
@@ -952,7 +950,6 @@ function GetPPImage(slideUID) {
 
 function createCompanionConnection() { 
 	if (config.get('plugin_companion')) {
-		console.log('plugin companion true')
 		if (companionClient !== undefined){
 			companionClient.destroy()
 			companionClient = undefined
@@ -995,7 +992,7 @@ function sendCompanionMessage(companionObj) {
 			let bank = companionObj.bank;
 			let button = companionObj.button;
 			if  (companionClient !== undefined) {
-				console.log('Companion Button Press: ' + bank + ',' + button)
+				console.log('Companion Message: '+ bank + ', ' + button)
 				companionClient.write(`BANK-PRESS ${bank} ${button}\r\n`);
 			}	
 		} 
@@ -1016,9 +1013,9 @@ ipcMain.on('propresenter_status', function (event) {
 
 ipcMain.on('monitor_status', function (event) {
 	event.sender.send('cs', propresenter_cs);
-	event.sender.send('csn', propresenter_csn);
+	event.sender.send('csn', propresenter_csn_commands);
 	event.sender.send('ns', propresenter_ns);
-	event.sender.send('nsn', propresenter_nsn);
+	event.sender.send('nsn', propresenter_nsn_commands);
 });
 
 ipcMain.on('mdns_propresenter_hosts', function (event) {

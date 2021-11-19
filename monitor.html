@@ -17,11 +17,6 @@
 			
 			const config = require('./config');
 
-			//const marked = require("marked");
-			//const helpFile = './help.md';
-
-			//const fs = require('fs')
-
 			ipc.on('cs', function(event, cs) {
 				$('#divCurrentSlide').html(cs.replace(/\n/g, '<br />'));
 			});
@@ -42,7 +37,7 @@
 				ipc.send('monitor_status');
 			});
 
-			function processSlideNotes(type, text) {
+			function processSlideNotes(type, commands) {
 				switch(type) {
 					case 'csn':
 						$('#divCurrentSlideNotes').html('');
@@ -52,12 +47,12 @@
 						break;
 				}
 
-				if (text !== '') {
-					if (text.indexOf(':') > -1) {
-						let commands = text.replace(/\s/g, "").split(';');
+				if (commands !== null) {
+					if (commands.length > 0) {
 						for (let i = 0; i < commands.length; i++) {
-							let command = commands[i].substring(0, commands[i].indexOf(':')).toLowerCase();
-							let parameters = commands[i].substring(commands[i].indexOf(':')+1).split(',');					
+							let cleanstring = commands[i].replace(/[^\w:,]/g, "")
+							let command = cleanstring.substring(0, cleanstring.indexOf(':')).toLowerCase()
+							let parameters = cleanstring.substring(cleanstring.indexOf(':')+1).split(',');
 							let commandObj = {};
 					
 							if (parameters) {
@@ -249,11 +244,11 @@
 					case 'companion':
 					case 'cbp':
 						tooltipData = 'Bank ' + obj.bank + ', Button ' + obj.button;
-						name = 'Companion Button';
+						name = 'Companion ' + obj.bank +', ' + obj.button;
 						break;
 					case 'logo':
 						tooltipData = 'Switch ' + obj.switch;
-						name = 'Logo';
+						name = 'Logo ' + obj.switch;
 						break;
 					default:
 						break;
