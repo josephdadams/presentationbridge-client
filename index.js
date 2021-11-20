@@ -948,28 +948,26 @@ function sendHttpMessage(httpObj) {
 }
 
 function GetProPresenterImage(slideUID) {
-	if (commands_on) {
-		const ip = config.get('propresenterIP');
-		const port = config.get('propresenterPort');
-				
-		const url = ('http://' + ip + ':' + port + '/stage/image/' + slideUID);
+	const ip = config.get('propresenterIP');
+	const port = config.get('propresenterPort');
+			
+	const url = ('http://' + ip + ':' + port + '/stage/image/' + slideUID);
 
-		let options = {
-			method: 'GET',
-			url: url,
-			responseType: 'arraybuffer'
-		};
-	
-		axios(options)
-		.then(function (response) {
-			if (response.data !== undefined && response.data !== null) {
- 				bridgeIO.emit('current_slide_image', config.get('presentationbridgeID'), Buffer.from(response.data, 'binary').toString('base64'))
-			}
-		})
-		.catch(function (error) {
-			console.log('ProPresenter Image GET error', error.errno);
-		});
-	}
+	let options = {
+		method: 'GET',
+		url: url,
+		responseType: 'arraybuffer'
+	};
+
+	axios(options)
+	.then(function (response) {
+		if (response.data !== undefined && response.data !== null) {
+			bridgeIO.emit('current_slide_image', config.get('presentationbridgeID'), Buffer.from(response.data, 'binary').toString('base64'))
+		}
+	})
+	.catch(function (error) {
+		console.log('ProPresenter Image GET error', error.errno);
+	});
 }
 
 function createCompanionConnection() { 
