@@ -21,10 +21,10 @@ var propresenter_socket = undefined;
 var propresenter_status = 'disconnected';
 var propresenter_cs = '';
 var propresenter_csn = '';
-var propresenter_csn_commands = '';
+var propresenter_csn_commands = [];
 var propresenter_ns = '';
 var propresenter_nsn = '';
-var propresenter_nsn_commands = '';
+var propresenter_nsn_commands = [];
 
 const axios = require('axios');
 const socketio = require('socket.io-client');
@@ -626,6 +626,7 @@ function clearLyrics() {
 function handleStageDisplayMessage(message) {
 
 	var objData = JSON.parse(message);
+	
 	switch(objData.acn) {
 		case 'ath':
 			if (objData.ath === true) {
@@ -655,18 +656,30 @@ function handleStageDisplayMessage(message) {
 					}
 				}
 				if (objData.ary[i].acn === 'csn') {
-					// separate commands in from notes
-					propresenter_csn = objData.ary[i].txt.toString().replace(/\b[\w\s].*?:.+?;/g,"") 
-					propresenter_csn_commands = objData.ary[i].txt.toString().match(/\b[\w\s].*?:.+?;/g)
-
-					if (propresenter_csn_commands !== null) {
-						if (propresenter_csn_commands.length > 0) {
-							parseStageDisplayMessage(propresenter_csn_commands);
+					// separate commands from notes
+					propresenter_csn = objData.ary[i].txt.toString()
+					propresenter_csn_commands = []
+					let commandset = objData.ary[i].txt.toString().match(/(?<command>\w+\s*:[\w\s,]*?;)/g)
+					if (commandset !== null) {
+						for (const item of commandset) {
+							let command = item.substring(0, item.indexOf(':')).trim().toLowerCase()
+							let parameters = item.substring(item.indexOf(':')+1).slice(0,-1).split(',').map(each => each.trim())
+							// remove command from notes
+							propresenter_csn = propresenter_csn.replace(item, '')
+							// build commands array of clean strings
+							propresenter_csn_commands.push({"command": command, "parameters": parameters})
 						}
 					}
 
+					if (propresenter_csn_commands.length > 0) {
+						if (commands_on) {
+							parseStageDisplayMessage(propresenter_csn_commands);
+
+						}
+					}	
+
 					if (monitorWindow) {
-						monitorWindow.webContents.send('csn', propresenter_csn_commands === null ? '' : propresenter_csn_commands);
+						monitorWindow.webContents.send('csn', propresenter_csn_commands);
 					}
 
 					if (lyrics_on) {
@@ -688,13 +701,25 @@ function handleStageDisplayMessage(message) {
 					}
 				}
 				if (objData.ary[i].acn === 'nsn') {
-					propresenter_nsn = objData.ary[i].txt.toString().replace(/\b[\w\s].*?:.+?;/g,"") 
-					propresenter_nsn_commands = objData.ary[i].txt.toString().match(/\b[\w\s].*?:.+?;/g)
-
-					if (monitorWindow) {
-						monitorWindow.webContents.send('nsn', propresenter_nsn_commands === null ? '' : propresenter_nsn_commands);
+					// separate commands from notes
+					propresenter_nsn = objData.ary[i].txt.toString()
+					propresenter_nsn_commands = []
+					let commandset = objData.ary[i].txt.toString().match(/(?<command>\w+\s*:[\w\s,]*?;)/g)
+					if (commandset !== null) {
+						for (const item of commandset) {
+							let command = item.substring(0, item.indexOf(':')).trim().toLowerCase()
+							let parameters = item.substring(item.indexOf(':')+1).slice(0,-1).split(',').map(each => each.trim())
+							// remove command from notes
+							propresenter_nsn = propresenter_nsn.replace(item, '')
+							// build commands array of clean strings
+							propresenter_nsn_commands.push({"command": command, "parameters": parameters})
+						}
 					}
 
+					if (monitorWindow) {
+						monitorWindow.webContents.send('nsn', propresenter_nsn_commands);
+					}
+				
 					if (lyrics_on) {
 						if (bridgeConnected) {
 							bridgeIO.emit('next_slide_notes', config.get('presentationbridgeID'), propresenter_nsn);
@@ -709,14 +734,13 @@ function handleStageDisplayMessage(message) {
 }
 
 function parseStageDisplayMessage(commands) {
+
 		for (let i = 0; i < commands.length; i++) {
-			let cleanstring = commands[i].replace(/[^\w:,]/g, "")
-			let command = cleanstring.substring(0, cleanstring.indexOf(':')).toLowerCase()
-			let parameters = cleanstring.substring(cleanstring.indexOf(':')+1).split(',');
-	
+			let command = commands[i].command
+			let parameters = commands[i].parameters
 			let commandObj = {};
 			if (command !== '' && parameters) {
-				switch(command.toLowerCase()) {
+				switch(command) {
 					case 'noteon':
 						//"noteon:0,55,100" Note On Command, Channel 1 (zero based), Note 55, Velocity 100
 						commandObj.midiport = config.get('midirelayMIDIPort');

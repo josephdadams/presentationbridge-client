@@ -50,9 +50,8 @@
 				if (commands !== null) {
 					if (commands.length > 0) {
 						for (let i = 0; i < commands.length; i++) {
-							let cleanstring = commands[i].replace(/[^\w:,]/g, "")
-							let command = cleanstring.substring(0, cleanstring.indexOf(':')).toLowerCase()
-							let parameters = cleanstring.substring(cleanstring.indexOf(':')+1).split(',');
+							let command = commands[i].command
+							let parameters = commands[i].parameters
 							let commandObj = {};
 					
 							if (parameters) {
