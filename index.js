@@ -21,8 +21,10 @@ var propresenter_socket = undefined;
 var propresenter_status = 'disconnected';
 var propresenter_cs = '';
 var propresenter_csn = '';
+var propresenter_csn_commands = [];
 var propresenter_ns = '';
 var propresenter_nsn = '';
+var propresenter_nsn_commands = [];
 
 const axios = require('axios');
 const socketio = require('socket.io-client');
@@ -155,8 +157,9 @@ const createsettingsWindow = async () => {
 		width: 1000,
 		height: 825,
 		webPreferences: {
+			contextIsolation: false,
 			nodeIntegration: true,
-			//enableRemoteModule: true
+			enableRemoteModule: true
 		}
 	});
 
@@ -199,8 +202,9 @@ const createmonitorWindow = async () => {
 		width: 1000,
 		height: 800,
 		webPreferences: {
+			contextIsolation: false,
 			nodeIntegration: true,
-			//enableRemoteModule: true
+			enableRemoteModule: true
 		}
 	});
 
@@ -282,6 +286,7 @@ function checkForUpdates() {
 	
 	tray = new Tray(path.join(__dirname,'Bridge-icon.png'));
 	buildTray();
+
 	if (config.get('switch_mdns')) {
 		findHosts();
 	}
@@ -530,6 +535,7 @@ function presentationbridge_connect() {
 	});
 
 	bridgeIO.on('error', function (err) {
+		console.log('Bridge Connect Error')
 		if (err.errno.indexOf('ECONNREFUSED') > -1) {
 			presentationbridge_status = 'econnrefused';
 			SendStatusMessage();
@@ -543,7 +549,7 @@ function presentationbridge_connect() {
 			buildTray();
 		}
 	});
-
+ 
 	bridgeIO.on('disconnect', function() {
 		bridgeConnected = false;
 		console.log('Disconnected from Presentation Bridge Server.');
@@ -620,6 +626,7 @@ function clearLyrics() {
 function handleStageDisplayMessage(message) {
 
 	var objData = JSON.parse(message);
+	
 	switch(objData.acn) {
 		case 'ath':
 			if (objData.ath === true) {
@@ -639,7 +646,9 @@ function handleStageDisplayMessage(message) {
 					if (lyrics_on) {
 						if (bridgeConnected) {
 							bridgeIO.emit('current_slide', config.get('presentationbridgeID'), objData.ary[i].txt);
-							console.log('cs: '+ objData.ary[i].txt)
+							if(config.get('switch_PPimages')) {
+								GetProPresenterImage(objData.ary[i].uid)  
+							}
 						}
 					}
 					if (monitorWindow) {
@@ -647,16 +656,38 @@ function handleStageDisplayMessage(message) {
 					}
 				}
 				if (objData.ary[i].acn === 'csn') {
-					propresenter_csn = objData.ary[i].txt;
-					parseStageDisplayMessage(objData.ary[i].txt);
-					if (lyrics_on) {
-						if (bridgeConnected) {
-							bridgeIO.emit('current_slide_notes', config.get('presentationbridgeID'), objData.ary[i].txt);
+					// separate commands from notes
+					propresenter_csn = objData.ary[i].txt.toString()
+					propresenter_csn_commands = []
+					let commandset = objData.ary[i].txt.toString().match(/(?<command>\w+\s*:[\w\s,]*?;)/g)
+					if (commandset !== null) {
+						for (const item of commandset) {
+							let command = item.substring(0, item.indexOf(':')).trim().toLowerCase()
+							let parameters = item.substring(item.indexOf(':')+1).slice(0,-1).split(',').map(each => each.trim())
+							// remove command from notes
+							propresenter_csn = propresenter_csn.replace(item, '')
+							// build commands array of clean strings
+							propresenter_csn_commands.push({"command": command, "parameters": parameters})
 						}
 					}
+
+					if (propresenter_csn_commands.length > 0) {
+						if (commands_on) {
+							parseStageDisplayMessage(propresenter_csn_commands);
+
+						}
+					}	
+
 					if (monitorWindow) {
-						monitorWindow.webContents.send('csn', objData.ary[i].txt);
+						monitorWindow.webContents.send('csn', propresenter_csn_commands);
 					}
+
+					if (lyrics_on) {
+						if (bridgeConnected) {
+							bridgeIO.emit('current_slide_notes', config.get('presentationbridgeID'), propresenter_csn);
+						}
+					}
+
 				}
 				if (objData.ary[i].acn === 'ns') {
 					propresenter_ns = objData.ary[i].txt;
@@ -670,14 +701,29 @@ function handleStageDisplayMessage(message) {
 					}
 				}
 				if (objData.ary[i].acn === 'nsn') {
-					propresenter_nsn = objData.ary[i].txt;
-					if (lyrics_on) {
-						if (bridgeConnected) {
-							bridgeIO.emit('next_slide_notes', config.get('presentationbridgeID'), objData.ary[i].txt);
+					// separate commands from notes
+					propresenter_nsn = objData.ary[i].txt.toString()
+					propresenter_nsn_commands = []
+					let commandset = objData.ary[i].txt.toString().match(/(?<command>\w+\s*:[\w\s,]*?;)/g)
+					if (commandset !== null) {
+						for (const item of commandset) {
+							let command = item.substring(0, item.indexOf(':')).trim().toLowerCase()
+							let parameters = item.substring(item.indexOf(':')+1).slice(0,-1).split(',').map(each => each.trim())
+							// remove command from notes
+							propresenter_nsn = propresenter_nsn.replace(item, '')
+							// build commands array of clean strings
+							propresenter_nsn_commands.push({"command": command, "parameters": parameters})
 						}
 					}
+
 					if (monitorWindow) {
-						monitorWindow.webContents.send('nsn', objData.ary[i].txt);
+						monitorWindow.webContents.send('nsn', propresenter_nsn_commands);
+					}
+				
+					if (lyrics_on) {
+						if (bridgeConnected) {
+							bridgeIO.emit('next_slide_notes', config.get('presentationbridgeID'), propresenter_nsn);
+						}
 					}
 				}
 			}
@@ -687,20 +733,14 @@ function handleStageDisplayMessage(message) {
 	}
 }
 
-function parseStageDisplayMessage(text) {
-	if (text !== '') {
-		console.log('Stage Display Message: ' + text);
-		let commands = text.replace(/\s/g, "").split(';');
+function parseStageDisplayMessage(commands) {
+
 		for (let i = 0; i < commands.length; i++) {
-			let command = commands[i].substring(0, commands[i].indexOf(':'))
-			console.log('Command: ' + command);
-			let parameters = commands[i].substring(commands[i].indexOf(':')+1).split(',');
-			console.log('Parameters: ' + parameters);
-	
+			let command = commands[i].command
+			let parameters = commands[i].parameters
 			let commandObj = {};
-	
 			if (command !== '' && parameters) {
-				switch(command.toLowerCase()) {
+				switch(command) {
 					case 'noteon':
 						//"noteon:0,55,100" Note On Command, Channel 1 (zero based), Note 55, Velocity 100
 						commandObj.midiport = config.get('midirelayMIDIPort');
@@ -830,12 +870,12 @@ function parseStageDisplayMessage(text) {
 						}
 						break;
 					default:
-						console.log('Invalid command');
+						console.log('Invalid command: ' + command);
 						break;
 				}
 			}
 		}
-	}
+
 }
 
 function sendMidiRelayMessage(midiObj) {
@@ -907,6 +947,29 @@ function sendHttpMessage(httpObj) {
 	}
 }
 
+function GetProPresenterImage(slideUID) {
+	const ip = config.get('propresenterIP');
+	const port = config.get('propresenterPort');
+			
+	const url = ('http://' + ip + ':' + port + '/stage/image/' + slideUID);
+
+	let options = {
+		method: 'GET',
+		url: url,
+		responseType: 'arraybuffer'
+	};
+
+	axios(options)
+	.then(function (response) {
+		if (response.data !== undefined && response.data !== null) {
+			bridgeIO.emit('current_slide_image', config.get('presentationbridgeID'), Buffer.from(response.data, 'binary').toString('base64'))
+		}
+	})
+	.catch(function (error) {
+		console.log('ProPresenter Image GET error', error.errno);
+	});
+}
+
 function createCompanionConnection() { 
 	if (config.get('plugin_companion')) {
 		if (companionClient !== undefined){
@@ -936,7 +999,10 @@ function createCompanionConnection() {
 			companionClient.destroy()
 			companionClient = undefined
 		})
-
+	} else {
+		console.log('Companion Connection closing')
+		companionClient.destroy()
+		companionClient = undefined
 	}
 }
 function sendCompanionMessage(companionObj) { 
@@ -948,10 +1014,10 @@ function sendCompanionMessage(companionObj) {
 			let bank = companionObj.bank;
 			let button = companionObj.button;
 			if  (companionClient !== undefined) {
-				console.log('Companion Button Press: ' + bank + ',' + button)
+				console.log('Companion Message: '+ bank + ', ' + button)
 				companionClient.write(`BANK-PRESS ${bank} ${button}\r\n`);
 			}	
-		}
+		} 
 	}
 }
 
@@ -969,9 +1035,9 @@ ipcMain.on('propresenter_status', function (event) {
 
 ipcMain.on('monitor_status', function (event) {
 	event.sender.send('cs', propresenter_cs);
-	event.sender.send('csn', propresenter_csn);
+	event.sender.send('csn', propresenter_csn_commands);
 	event.sender.send('ns', propresenter_ns);
-	event.sender.send('nsn', propresenter_nsn);
+	event.sender.send('nsn', propresenter_nsn_commands);
 });
 
 ipcMain.on('mdns_propresenter_hosts', function (event) {

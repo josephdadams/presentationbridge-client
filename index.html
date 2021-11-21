@@ -132,7 +132,7 @@
 						break;
 					case 'connecting':
 						displayText = 'Connecting...';
-						presentationbridge_disablefields(true);
+						presentationbridge_disablefields(false);
 						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger');
 						$('#btnPresentationBridgeConnect').addClass('btn-warning');
 						break;
@@ -194,6 +194,7 @@
 			$( document ).ready(function() {
 				$('#divTopLine').html('  v' + package_json.version)
 
+				$('#switchPPimages').prop('checked', config.get('switch_PPimages'));
 				$('#txtProPresenterIP').val(config.get('propresenterIP'));
 				$('#txtProPresenterPort').val(config.get('propresenterPort'));
 				$('#txtProPresenterPassword').val(config.get('propresenterPassword'));
@@ -350,6 +351,9 @@
 					case 'monitor':
 						enable = $('#switchMonitor').prop('checked');
 						break;
+					case 'PPimages':
+						enable = $('#switchPPimages').prop('checked');
+						break;
 					default:
 						break;
 				}
@@ -388,11 +392,17 @@
 			<section>
 				<div class='horizontal-line'></div>
 				<div class='form-row'>
-					<div class='form-group col-md-4'>
-					<b>ProPresenter Settings:</b>
+					<div class='form-group col-md-2'>
+					<b>ProPresenter:</b>
 					</div>
-					<div class='form-group col-md-8'>
+					<div class='form-group col-md-7'>
 						<div id='divProPresenterStatus'></div>
+					</div>
+					<div class='form-group col-md-3'>
+						<div class="custom-control custom-switch">
+							<input type="checkbox" class="custom-control-input" id="switchPPimages" onClick="switch_enable('PPimages');">
+							<label class="custom-control-label" for="switchPPimages"><b>Send Images</b></label>
+						</div>
 					</div>
 				</div>
 				<div class='form-row'>
