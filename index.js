@@ -245,13 +245,14 @@ function checkForUpdates() {
     autoUpdater.autoInstallOnAppQuit = false;
     autoUpdater.checkForUpdates();
     autoUpdater.on("update-available", () => {
-        dialog.showMessageBox(mainWindow, {
+		settingsWindow.show();
+        dialog.showMessageBox(settingsWindow, {
             title: "Update Available",
             message: "There's an update available for PresentationBridge Client. Do you want to download and install it?",
             buttons: ["Update", "Cancel"],
         }).then((v) => {
             if (v.response == 0) {
-                dialog.showMessageBox(mainWindow, {
+                dialog.showMessageBox(settingsWindow, {
                     title: "Downloading update",
                     message: "The update is being downloaded in the background. Once finished, you will be prompted to save your work and restart PresentationBridge Client."
                 });
@@ -274,6 +275,13 @@ function checkForUpdates() {
 
 (async () => {
 	await app.whenReady();
+
+	settingsWindow = await createsettingsWindow();
+	monitorWindow = await createmonitorWindow();
+	
+	tray = new Tray(path.join(__dirname,'Bridge-icon.png'));
+	buildTray();
+
 	if (!is.development) {
 		const FOUR_HOURS = 1000 * 60 * 60 * 4;
 		setInterval(() => {
@@ -281,11 +289,6 @@ function checkForUpdates() {
 		}, FOUR_HOURS);
 		checkForUpdates();
 	}
-	settingsWindow = await createsettingsWindow();
-	monitorWindow = await createmonitorWindow();
-	
-	tray = new Tray(path.join(__dirname,'Bridge-icon.png'));
-	buildTray();
 
 	if (config.get('switch_mdns')) {
 		findHosts();
