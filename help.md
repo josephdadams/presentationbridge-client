@@ -6,7 +6,7 @@ THe Settings window is used to configure the software for ProPresenter, Presenta
 
 Text on slides is sent to the bridge for display on devices that are connected. Images of the slides will be sent if the 'Send Images' switch in settings is on. The stage display shows the slide text and notes for both the current slide and next.
 
-In addition, using the notes section of a slide, this Client can also send commands using midi-relay, HHHTP and Companion:
+In addition, using the notes section of a slide, this Client can also send commands using midi-relay, HTTP and Companion:
 * Send MIDI voice messages, using the free program [midi-relay](http://github.com/josephdadams/midi-relay)
 * Make HTTP Requests (GET and POST, with JSON data if needed)
 * Press Companion Buttons using the TCP protocol
