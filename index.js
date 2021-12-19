@@ -650,7 +650,7 @@ function handleStageDisplayMessage(message) {
 						if (bridgeConnected) {
 							bridgeIO.emit('current_slide', config.get('presentationbridgeID'), objData.ary[i].txt);
 							if(config.get('switch_PPimages')) {
-								GetProPresenterImage(objData.ary[i].uid)  
+								sendProPresenterImage(objData.ary[i].uid)  
 							}
 						}
 					}
@@ -662,7 +662,8 @@ function handleStageDisplayMessage(message) {
 					// separate commands from notes
 					propresenter_csn = objData.ary[i].txt.toString()
 					propresenter_csn_commands = []
-					let commandset = objData.ary[i].txt.toString().match(/(?<command>\w+\s*:[\w\s,]*?;)/g)
+					let noteString = objData.ary[i].txt.toString() + ';' // add terminating semicolon to allow for backwards compatibility of a single command in notes without a terminator
+					let commandset = noteString.match(/(\w+\s*:[\w\s,]*?;)/g)
 					if (commandset !== null) {
 						for (const item of commandset) {
 							let command = item.substring(0, item.indexOf(':')).trim().toLowerCase()
@@ -707,7 +708,8 @@ function handleStageDisplayMessage(message) {
 					// separate commands from notes
 					propresenter_nsn = objData.ary[i].txt.toString()
 					propresenter_nsn_commands = []
-					let commandset = objData.ary[i].txt.toString().match(/(?<command>\w+\s*:[\w\s,]*?;)/g)
+					let noteString = objData.ary[i].txt.toString() + ';' // add terminating semicolon to allow for backwards compatibility of a single command in notes without a terminator
+					let commandset = noteString.match(/(\w+\s*:[\w\s,]*?;)/g)
 					if (commandset !== null) {
 						for (const item of commandset) {
 							let command = item.substring(0, item.indexOf(':')).trim().toLowerCase()
@@ -950,7 +952,7 @@ function sendHttpMessage(httpObj) {
 	}
 }
 
-function GetProPresenterImage(slideUID) {
+function sendProPresenterImage(slideUID) {
 	const ip = config.get('propresenterIP');
 	const port = config.get('propresenterPort');
 			

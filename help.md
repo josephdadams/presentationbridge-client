@@ -13,9 +13,9 @@ In addition, using the notes section of a slide, this Client can also send comma
 
 In general, the format is as follows:
 
-`[command type]:[parameter 1],[parameter 2][etc.]`
+`[command type]:[parameter 1],[parameter 2][etc.];`
 
-Each parameter is separated by a comma and a command should be terminated with a semicolon. 
+Each parameter is separated by a comma and a command should be terminated with a semicolon if there are other text notes or commands on the same notes page. A single command on the notes page does not need the terminating semicolon (for backwards compatibility).
 
 The program works by listening to the "current slide notes" data within ProPresenter. If the text contains valid commands  then these will be processed. Other text is sent to the stagedisplay bridge.
 
@@ -24,74 +24,74 @@ The program works by listening to the "current slide notes" data within ProPrese
 ### Supported MIDI Relay Types
 * Note On
 
-	Format: `noteon:[channel],[note],[velocity]`
+	Format: `noteon:[channel],[note],[velocity];`
 	
 	* `channel` should be a integer between 0 and 15.
 	* `note` should be an integer of the MIDI Number value that represents the note, between 0 and 127.
 	* `velocity` should be a integer between 1 and 127. A value of 0 is considered a Note Off message.
 
-	Example: `noteon:0,55,100`
+	Example: `noteon:0,55,100;`
 	
 * Note Off
 
-	Format: `noteoff:[channel],[note],[velocity]`
+	Format: `noteoff:[channel],[note],[velocity];`
 	
 	* `channel` should be a integer between 0 and 15.
 	* `note` should be an integer of the MIDI Number value that represents the note, between 0 and 127.
 	* `velocity` should be 0.
 
-	Example: `noteoff:0,55,100`
+	Example: `noteoff:0,55,100;`
 
 * Polyphonic Aftertouch
 
-	Format: `aftertouch:[channel],[note],[value]`
+	Format: `aftertouch:[channel],[note],[value];`
 	
 	* `channel` should be a integer between 0 and 15.
 	* `note` should be an integer of the MIDI Number value that represents the note, between 0 and 127.
 	* `velocity` should be a integer between 0 and 127.
 
-	Example: `aftertouch:0,55,100`
+	Example: `aftertouch:0,55,100;`
 
 * CC (Control Change)
 
-	Format: `cc:[channel],[controller],[value]`
+	Format: `cc:[channel],[controller],[value];`
 	
 	* `channel` should be a integer between 0 and 15.
 	* `controller` should be a integer between 0 and 127.
 	* `value` should be a integer between 0 and 127.
 
-	Example: `cc:0,32,100`
+	Example: `cc:0,32,100;`
 	
 * PC (Program Change)
 
-	Format: `pc:[channel],[value]`
+	Format: `pc:[channel],[value];`
 
 	* `channel` should be a integer between 0 and 15.
 	* `value` should be a integer between 0 and 127.
 
-	Example: `pc:0,100`
+	Example: `pc:0,100;`
 
 * Channel Pressure / Aftertouch
 
-	Format: `pressure:[channel],[value]`
+	Format: `pressure:[channel],[value];`
 	
 	* `channel` should be a integer between 0 and 15.
 	* `value` should be a integer between 0 and 127.
 
-	Example: `pressure:0,100`
+	Example: `pressure:0,100;`
 
 * Pitch Bend / Pitch Wheel
 
-	Format: `pitchbend:[channel],[value]`
+	Format: `pitchbend:[channel],[value];`
 	
 	* `channel` should be a integer between 0 and 15.
 	* `value` should be a integer between 0 and 16,383.
 
-	Example: `pitchbend:0,100`
+	Example: `pitchbend:0,100;`
 
 * MSC (MIDI Show Control)
 
-	Format: `msc:[device id],[command format],[command],[cue],[cuelist],[cuepath]`
+	Format: `msc:[device id],[command format],[command],[cue],[cuelist],[cuepath];`
 
 	* `deviceid` should be an integer between 0 and 111. It can also be a string 'g1' through 'g15' to represent groups, or it can be `all`.
 
@@ -126,16 +126,16 @@ The program works by listening to the "current slide notes" data within ProPrese
 
 	* Values for `cue`, `cuelist`, and `cuepath` are all optional strings. If you don't want to include them, just include the `,` delimiter.
 
-	Example: `msc:0,lighting.general,go,1,12,,`
+	Example: `msc:0,lighting.general,go,1,12,,;`
 
 * Sysex MIDI Message
 
-	Format: `sysex:[message]`
+	Format: `sysex:[message];`
 	
 	* `message` should contain the actual MIDI message in bytes. Bytes can be either in hexadecimal or decimal, separated by commas.
 	* A response of `{result: 'sysex-sent-successfully'}` indicates the SysEx MIDI message was successfully sent.
 
-	Example: `sysex:0xF0,0x41,0x10,0x00,0x00,0x00,0x20,0x12,0x71,0x00,0x08,0x00,0x07,0xF7`
+	Example: `sysex:0xF0,0x41,0x10,0x00,0x00,0x00,0x20,0x12,0x71,0x00,0x08,0x00,0x07,0xF7;`
 	
 All values for `channel` are zero-based. (e.g., Channel of `1` should be sent as `0`.)
 
@@ -144,41 +144,41 @@ In addition to the primary MIDI voice message notations, the following notations
 
 * Chroma-Q Vista Lighting MSC Message (the Vista console must be running midi-relay)
 
-	Format: `vista:[cue list],[cue]`
+	Format: `vista:[cue list],[cue];`
 
 	* `cue list`: The cue list you want to control
 	* `cue`: The cue to play
 
-	Example: `vista:1,2.5` : This would run Cue 2.5 on Cuelist 1. This assumes a `device id` of `0`, `command format` is `lighting.general`, and the `command` is `go`.
+	Example: `vista:1,2.5;` : This would run Cue 2.5 on Cuelist 1. This assumes a `device id` of `0`, `command format` is `lighting.general`, and the `command` is `go`.
 
 ## HTTP Requests
 HTTP Requests to perform actions or send data can also be easily performed.
 
-Format: `http:[url]`
+Format: `http:[url];`
 
 * `url`: The URL to perform an HTTP GET request
 
 You can also use the following notations to perform specific HTTP request types:
 
-* `http:get,[url]`
-* `http:post,[url]`
-* `http:post,[url],[json]`
+* `http:get,[url];`
+* `http:post,[url];`
+* `http:post,[url],[json];`
 
-Example: `http:get,http://www.techministry.blog` : This would perform an HTTP GET request to the URL, `http://www.techministry.blog`.
+Example: `http:get,http://www.techministry.blog;` : This would perform an HTTP GET request to the URL, `http://www.techministry.blog`.
 
 ## Companion Button Press
 
-Format: `companion:[bank],[button]` or `cbp:[bank],[button]`
+Format: `companion:[bank],[button];` or `cbp:[bank],[button];`
 
 * `bank`: The page in Companion where the button is
 * `button`: The button on the page that you wish to press
 
-Example: `companion:1,2` : This would press Button 2 on Page 1.
+Example: `companion:1,2;` : This would press Button 2 on Page 1.
 
 ## Turn bridge logo on or off
 
-Format: `logo:[switch]`
+Format: `logo:[switch];`
 
 * `switch`: Either `on` or `off`
 
-Example: `logo:on` : To turn the logo on.
+Example: `logo:on;` : To turn the logo on.
