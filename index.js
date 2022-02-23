@@ -440,17 +440,19 @@ function propresenter_connect() {
 	});
 
 	propresenter_socket.on('error', function (err) {
-		if (err.errno.indexOf('ECONNREFUSED') > -1) {
-			propresenter_status = 'econnrefused';
-			SendStatusMessage();
-			trayMenuItems[0].label = 'Connection Refused: ' + ip + ':' + port;
-			buildTray();
-		}
-		else if (err.errno.indexOf('ETIMEDOUT') > -1) {
-			propresenter_status = 'etimedout';
-			SendStatusMessage();
-			trayMenuItems[0].label = 'Connection Timed Out: ' + ip + ':' + port;
-			buildTray();
+		if (err.errno !== undefined){
+			if (err.errno.indexOf('ECONNREFUSED') > -1) {
+				propresenter_status = 'econnrefused';
+				SendStatusMessage();
+				trayMenuItems[0].label = 'Connection Refused: ' + ip + ':' + port;
+				buildTray();
+			}
+			else if (err.errno.indexOf('ETIMEDOUT') > -1) {
+				propresenter_status = 'etimedout';
+				SendStatusMessage();
+				trayMenuItems[0].label = 'Connection Timed Out: ' + ip + ':' + port;
+				buildTray();
+			}
 		}
 	});
 
@@ -645,10 +647,14 @@ function handleStageDisplayMessage(message) {
 		case 'fv':
 			for (let i = 0; i < objData.ary.length; i++) {
 				if (objData.ary[i].acn === 'cs') {
-					propresenter_cs = objData.ary[i].txt;
+					if(config.get('switch_PPUCase')) {
+						propresenter_cs = objData.ary[i].txt.toUpperCase();
+					} else {
+						propresenter_cs = objData.ary[i].txt;
+					}
 					if (lyrics_on) {
 						if (bridgeConnected) {
-							bridgeIO.emit('current_slide', config.get('presentationbridgeID'), objData.ary[i].txt);
+							bridgeIO.emit('current_slide', config.get('presentationbridgeID'), propresenter_cs);
 							if(config.get('switch_PPimages')) {
 								sendProPresenterImage(objData.ary[i].uid)  
 							}

@@ -195,6 +195,7 @@
 				$('#divTopLine').html('  v' + package_json.version)
 
 				$('#switchPPimages').prop('checked', config.get('switch_PPimages'));
+				$('#switchPPUCase').prop('checked', config.get('switch_PPUCase'));
 				$('#txtProPresenterIP').val(config.get('propresenterIP'));
 				$('#txtProPresenterPort').val(config.get('propresenterPort'));
 				$('#txtProPresenterPassword').val(config.get('propresenterPassword'));
@@ -354,6 +355,9 @@
 					case 'PPimages':
 						enable = $('#switchPPimages').prop('checked');
 						break;
+					case 'PPUCase':
+					enable = $('#switchPPUCase').prop('checked');
+					break;
 					default:
 						break;
 				}
@@ -395,14 +399,8 @@
 					<div class='form-group col-md-2'>
 					<b>ProPresenter:</b>
 					</div>
-					<div class='form-group col-md-7'>
+					<div class='form-group col-md-10'>
 						<div id='divProPresenterStatus'></div>
-					</div>
-					<div class='form-group col-md-3'>
-						<div class="custom-control custom-switch">
-							<input type="checkbox" class="custom-control-input" id="switchPPimages" onClick="switch_enable('PPimages');">
-							<label class="custom-control-label" for="switchPPimages"><b>Send Images</b></label>
-						</div>
 					</div>
 				</div>
 				<div class='form-row'>
@@ -437,6 +435,20 @@
 					</div>
 					<div class='form-group col-md-4'>
 						<div id='divProPresenterHosts'></div>
+					</div>
+				</div>
+				<div class='form-row'>
+					<div class='form-group col-md-3'>
+						<div class="custom-control custom-switch">
+							<input type="checkbox" class="custom-control-input" id="switchPPimages" onClick="switch_enable('PPimages');">
+							<label class="custom-control-label" for="switchPPimages"><b>Send Images</b></label>
+						</div>
+					</div>
+					<div class='form-group col-md-3'>
+						<div class="custom-control custom-switch">
+							<input type="checkbox" class="custom-control-input" id="switchPPUCase" onClick="switch_enable('PPUCase');">
+							<label class="custom-control-label" for="switchPPUCase"><b>Upper Case</b></label>
+						</div>
 					</div>
 				</div>
 			</section>
@@ -489,7 +501,6 @@
 						</div>
 					</div>
 				</div>
-
 			</section>
 			<section>
 				<div class='horizontal-line'></div>
@@ -573,6 +584,12 @@
 				<div class='form-row'>
 					<div class='form-group col-md-4'>
 						<div class="custom-control custom-switch">
+							<input type="checkbox" class="custom-control-input" id="switchHttp" onClick="plugin_enable('http');">
+							<label class="custom-control-label" for="switchHttp"><b>HTTP Requests</b></label>
+							</div>
+					</div>
+					<div class='form-group col-md-4'>
+						<div class="custom-control custom-switch">
 							<input type="checkbox" class="custom-control-input" id="switchCompanion" onClick="plugin_enable('companion');">
 							<label class="custom-control-label" for="switchCompanion"><b>Companion Buttons</b></label>
 							</div>
@@ -588,15 +605,6 @@
 				</div>
 			</section>
 			<section>
-			<div class='horizontal-line'></div>
-			<div class='form-row'>
-				<div class='form-group col-md-4'>
-					<div class="custom-control custom-switch">
-						<input type="checkbox" class="custom-control-input" id="switchHttp" onClick="plugin_enable('http');">
-						<label class="custom-control-label" for="switchHttp"><b>HTTP Requests</b></label>
-						</div>
-				</div>
-			</div>
 		</section>
 		<section>
 			<div class='horizontal-line'></div>
