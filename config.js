@@ -7,6 +7,7 @@ module.exports = new Store({
 		propresenterPort: '49610',
 		propresenterPassword: '',
 		switch_PPimages: false,
+		switch_PPUCase: false,
 		presentationbridgeHost: '',
 		presentationbridgePort: '80',
 		presentationbridgeID: '',

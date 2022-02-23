@@ -2,9 +2,15 @@
 
 This software is designed to work with your presentation lyrics software, accessing slide data in real time and then performing custom actions. It integrates with PresentationBridge, a free server program that allows you to send lyric data to end devices such as phones, tablets, and tv sticks through the built in web browser on those devices. 
 
-THe Settings window is used to configure the software for ProPresenter, PresentationBridge, midi-relay, Vista, Companion and HTTP. 
+The Settings window is used to configure the software for ProPresenter, PresentationBridge, midi-relay, Vista, Companion and HTTP. 
 
-Text on slides is sent to the bridge for display on devices that are connected. Images of the slides will be sent if the 'Send Images' switch in settings is on. The stage display shows the slide text and notes for both the current slide and next.
+Text on slides is sent to the bridge for display on devices that are connected. 
+
+Text will be converted to upper case if the 'Upper Case' switch is set. This is used to match text display if a ProPresenter upper case theme is being used.
+
+Images of the slides will be sent if the 'Send Images' switch in settings is on. 
+
+The stage display shows the slide text and notes for both the current slide and next.
 
 In addition, using the notes section of a slide, this Client can also send commands using midi-relay, HTTP and Companion:
 * Send MIDI voice messages, using the free program [midi-relay](http://github.com/josephdadams/midi-relay)
