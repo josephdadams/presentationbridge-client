@@ -2,7 +2,7 @@
 
 This software is designed to work with your presentation lyrics software, accessing slide data in real time and then performing custom actions. It integrates with PresentationBridge, a free server program that allows you to send lyric data to end devices such as phones, tablets, and tv sticks through the built in web browser on those devices. 
 
-THe Settings window is used to configure the software for ProPresenter, PresentationBridge, midi-relay, Vista, Companion and HTTP. 
+The Settings window is used to configure the software for ProPresenter, PresentationBridge, midi-relay, Vista, Companion and HTTP. 
 
 Text on slides is sent to the bridge for display on devices that are connected. 
 
