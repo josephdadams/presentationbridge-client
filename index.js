@@ -715,7 +715,7 @@ function handleStageDisplayMessage(message) {
 					propresenter_nsn = objData.ary[i].txt.toString()
 					propresenter_nsn_commands = []
 					let noteString = objData.ary[i].txt.toString() + ';' // add terminating semicolon to allow for backwards compatibility of a single command in notes without a terminator
-					let commandset = noteString.match(/(\w+\s*:[\w\s,]*?;)/g)
+					let commandset = noteString.match(/(\w+\s*:[\w\s,\.]*?;)/g)
 					if (commandset !== null) {
 						for (const item of commandset) {
 							let command = item.substring(0, item.indexOf(':')).trim().toLowerCase()
