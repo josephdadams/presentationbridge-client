@@ -16,6 +16,7 @@ module.exports = new Store({
 		midirelayPort: '4000',
 		midirelayMIDIPort: 'loopMIDI Port',
 		companionIP: '127.0.0.1',
+		companionPort: '51234',
 		plugin_midirelay: true,
 		plugin_vista: true,
 		plugin_http: true,

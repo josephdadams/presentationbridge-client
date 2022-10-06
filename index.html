@@ -222,6 +222,7 @@
 				$('#switchCompanion').prop('checked', config.get('plugin_companion'));
 				plugin_enable('companion')
 				$('#txtCompanionIP').val(config.get('companionIP'));
+				$('#txtCompanionPort').val(config.get('companionPort'));
 
 				$('#switchMdns').prop('checked', config.get('switch_mdns'));
 				$('#switchSettings').prop('checked', config.get('switch_settings'));
@@ -374,6 +375,7 @@
 				config.set('vistaMIDIPort', $('#txtVistaMIDIPort').val());
 
 				config.set('companionIP', $('#txtCompanionIP').val());
+				config.set('companionPort', $('#txtCompanionPort').val());
 			}
 
 			function mdnsRescan() {
@@ -594,12 +596,24 @@
 							<label class="custom-control-label" for="switchCompanion"><b>Companion Buttons</b></label>
 							</div>
 					</div>
-					<div class='form-group col-md-4 collapse' id="companionSettings">
+				</div>
+				<div class='form-row collapse' id="companionSettings">
+					<div class='form-group col-md-4'>
+					</div>
+					<div class='form-group col-md-4'>
 						<div class="input-group input-group-sm">
 							<div class="input-group-prepend">
 								<label class="input-group-text" for="txtCompanionIP">IP</label>
 							</div>
 							<input type="text"  id='txtCompanionIP' class='form-control' minlength="7" maxlength="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$">
+						</div>
+					</div>
+					<div class='form-group col-md-4'>
+						<div class="input-group input-group-sm">
+							<div class="input-group-prepend">
+								<label class="input-group-text" for="txtCompanionPort">Port</label>
+							</div>	
+							<input type='number' id='txtCompanionPort' class='form-control'/>
 						</div>
 					</div>
 				</div>

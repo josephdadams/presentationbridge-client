@@ -987,7 +987,7 @@ function createCompanionConnection() {
 			companionClient.destroy()
 			companionClient = undefined
 		}
-		companionClient = new net.createConnection(51234, config.get('companionIP'));
+		companionClient = new net.createConnection(config.get('companionPort'), config.get('companionIP'));
 			console.log('Connecting to Companion.');
 
 		companionClient.on('connect', () => {
