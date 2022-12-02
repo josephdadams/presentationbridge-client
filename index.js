@@ -245,20 +245,23 @@ function checkForUpdates() {
     autoUpdater.autoInstallOnAppQuit = false;
     autoUpdater.checkForUpdates();
     autoUpdater.on("update-available", () => {
-		settingsWindow.show();
-        dialog.showMessageBox(settingsWindow, {
-            title: "Update Available",
-            message: "There's an update available for PresentationBridge Client. Do you want to download and install it?",
-            buttons: ["Update", "Cancel"],
-        }).then((v) => {
-            if (v.response == 0) {
-                dialog.showMessageBox(settingsWindow, {
-                    title: "Downloading update",
-                    message: "The update is being downloaded in the background. Once finished, you will be prompted to save your work and restart PresentationBridge Client."
-                });
-                autoUpdater.downloadUpdate();
-            }
-        });
+		if (settingsWindow) {
+			settingsWindow.show();
+
+			dialog.showMessageBox(settingsWindow, {
+				title: "Update Available",
+				message: "There's an update available for PresentationBridge Client. Do you want to download and install it?",
+				buttons: ["Update", "Cancel"],
+			}).then((v) => {
+				if (v.response == 0) {
+					dialog.showMessageBox(settingsWindow, {
+						title: "Downloading update",
+						message: "The update is being downloaded in the background. Once finished, you will be prompted to save your work and restart PresentationBridge Client."
+					});
+					autoUpdater.downloadUpdate();
+				}
+			});
+		}        
     });
     autoUpdater.on("update-downloaded", () => {
         dialog.showMessageBox(null, {
