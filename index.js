@@ -443,19 +443,24 @@ function propresenter_connect() {
 	});
 
 	propresenter_socket.on('error', function (err) {
-		if (err.errno !== undefined){
-			if (err.errno.indexOf('ECONNREFUSED') > -1) {
-				propresenter_status = 'econnrefused';
-				SendStatusMessage();
-				trayMenuItems[0].label = 'Connection Refused: ' + ip + ':' + port;
-				buildTray();
+		try {
+			if (err.errno !== undefined) {
+				if (err.errno.indexOf('ECONNREFUSED') > -1) {
+					propresenter_status = 'econnrefused';
+					SendStatusMessage();
+					trayMenuItems[0].label = 'Connection Refused: ' + ip + ':' + port;
+					buildTray();
+				}
+				else if (err.errno.indexOf('ETIMEDOUT') > -1) {
+					propresenter_status = 'etimedout';
+					SendStatusMessage();
+					trayMenuItems[0].label = 'Connection Timed Out: ' + ip + ':' + port;
+					buildTray();
+				}
 			}
-			else if (err.errno.indexOf('ETIMEDOUT') > -1) {
-				propresenter_status = 'etimedout';
-				SendStatusMessage();
-				trayMenuItems[0].label = 'Connection Timed Out: ' + ip + ':' + port;
-				buildTray();
-			}
+		}
+		catch(error) {
+
 		}
 	});
 
@@ -543,18 +548,22 @@ function presentationbridge_connect() {
 	});
 
 	bridgeIO.on('error', function (err) {
-		console.log('Bridge Connect Error')
-		if (err.errno.indexOf('ECONNREFUSED') > -1) {
-			presentationbridge_status = 'econnrefused';
-			SendStatusMessage();
-			trayMenuItems[1].label = 'Connection Refused: ' + ip + ':' + port;
-			buildTray();
+		try {
+			if (err.errno.indexOf('ECONNREFUSED') > -1) {
+				presentationbridge_status = 'econnrefused';
+				SendStatusMessage();
+				trayMenuItems[1].label = 'Connection Refused: ' + ip + ':' + port;
+				buildTray();
+			}
+			else if (err.errno.indexOf('ETIMEDOUT') > -1) {
+				presentationbridge_status = 'etimedout';
+				SendStatusMessage();
+				trayMenuItems[1].label = 'Connection Timed Out: ' + ip + ':' + port;
+				buildTray();
+			}
 		}
-		else if (err.errno.indexOf('ETIMEDOUT') > -1) {
-			presentationbridge_status = 'etimedout';
-			SendStatusMessage();
-			trayMenuItems[1].label = 'Connection Timed Out: ' + ip + ':' + port;
-			buildTray();
+		catch(error) {
+
 		}
 	});
  
