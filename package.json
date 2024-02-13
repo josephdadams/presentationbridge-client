@@ -39,9 +39,9 @@
 		"ws": "^7.5.3"
 	},
 	"devDependencies": {
-		"electron": "^18.3.7",
+		"electron": "^28.2.2",
 		"electron-builder": "^23.6.0",
-		"np": "^7.6.3",
+		"np": "^9.2.0",
 		"xo": "^0.53.1"
 	},
 	"xo": {
