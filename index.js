@@ -85,6 +85,15 @@ var trayMenuItems = [
 		}
 	},
 	{
+		type: 'separator'
+	},
+	{
+		label: 'Check for Updates',
+		click: function () {
+			checkForUpdates();
+		},
+	},
+	{
 		label: 'Quit',
 		click: function () {
 			app.quit();
@@ -285,13 +294,13 @@ function checkForUpdates() {
 	tray = new Tray(path.join(__dirname,'Bridge-icon.png'));
 	buildTray();
 
-	if (!is.development) {
+	/*if (!is.development) {
 		const FOUR_HOURS = 1000 * 60 * 60 * 4;
 		setInterval(() => {
 			checkForUpdates();
 		}, FOUR_HOURS);
 		checkForUpdates();
-	}
+	}*/
 
 	if (config.get('switch_mdns')) {
 		findHosts();

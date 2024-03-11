@@ -3,6 +3,7 @@ const Store = require('electron-store');
 
 module.exports = new Store({
 	defaults: {
+		automaticUpdates: false,
 		propresenterIP: '127.0.0.1',
 		propresenterPort: '49610',
 		propresenterPassword: '',
