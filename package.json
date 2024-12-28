@@ -1,27 +1,55 @@
 {
 	"name": "presentationbridge-client",
-	"productName": "PresentationBridge Client",
-	"version": "1.1.1",
+	"version": "1.2.0",
+	"author": "Joseph Adams <joseph@josephadams.dev>",
 	"description": "Links data from your Presentation / lyrics software to other software.",
-	"license": "MIT",
-	"repository": "josephdadams/presentationbridge-client",
-	"author": {
-		"name": "Joseph Adams",
-		"email": "josephdadams@gmail.com",
-		"url": "https://techministry.blog"
-	},
+	"main": "index.js",
 	"scripts": {
-		"postinstall": "electron-builder install-app-deps",
-		"lint": "xo",
-		"test": "npm run lint",
 		"start": "electron .",
+		"format": "prettier -w .",
+		"lint:raw": "eslint --ext .ts --ext .js --ignore-pattern dist --ignore-pattern pkg",
+		"lint": "yarn lint:raw .",
 		"pack": "electron-builder --dir",
 		"dist": "electron-builder --macos --linux --windows",
-		"windist": "electron-builder --windows",
-		"release": "np"
+		"windist": "electron-builder --windows"
+	},
+	"build": {
+		"appId": "com.josephadams.presentationbridge-client",
+		"productName": "presentationbridge-client",
+		"mac": {
+			"target": [
+				{
+					"target": "dmg",
+					"arch": [
+						"x64",
+						"arm64"
+					]
+				}
+			],
+			"category": "public.app-category.utilities",
+			"icon": "static/icon.png",
+			"identity": "Joseph Adams (R2PY2DC3A4)",
+			"extendInfo": {
+				"NSApplicationSupportsSecureRestorableState": true,
+				"electronTeamId": "R2PY2DC3A4"
+			},
+			"hardenedRuntime": true,
+			"gatekeeperAssess": true,
+			"entitlements": "entitlements.mac.plist",
+			"entitlementsInherit": "entitlements.mac.plist"
+		},
+		"win": {
+			"target": "nsis",
+			"icon": "static/icon.ico"
+		},
+		"linux": {
+			"target": "AppImage",
+			"icon": "static/icon.png"
+		},
+		"generateUpdatesFilesForAllChannels": false
 	},
 	"dependencies": {
-		"@popperjs/core": "^2.9.2",
+"@popperjs/core": "^2.9.2",
 		"axios": "^1.6.0",
 		"bootstrap": "^4.6.0",
 		"electron-context-menu": "^0.15.0",
@@ -39,51 +67,9 @@
 		"ws": "^7.5.10"
 	},
 	"devDependencies": {
-		"electron": "^22.3.25",
-		"electron-builder": "^24.13.3",
-		"np": "^9.2.0",
-		"xo": "^0.53.1"
-	},
-	"xo": {
-		"envs": [
-			"node",
-			"browser"
-		]
-	},
-	"np": {
-		"publish": false,
-		"releaseDraft": false
-	},
-	"build": {
-		"appId": "com.techministry.presentationbridgeclient",
-		"mac": {
-			"category": "public.app-category.social-networking",
-			"darkModeSupport": true
-		},
-		"dmg": {
-			"iconSize": 160,
-			"contents": [
-				{
-					"x": 180,
-					"y": 170
-				},
-				{
-					"x": 480,
-					"y": 170,
-					"type": "link",
-					"path": "/Applications"
-				}
-			]
-		},
-		"linux": {
-			"target": [
-				"AppImage",
-				"deb"
-			],
-			"category": "Network;Chat"
-		},
-		"extraFiles": [
-			"help.md"
-		]
+		"@electron/notarize": "^2.5.0",
+		"electron": "^33.2.1",
+		"electron-builder": "^25.1.8",
+		"prettier": "^3.3.3"
 	}
 }
