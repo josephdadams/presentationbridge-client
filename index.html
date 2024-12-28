@@ -1,389 +1,412 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
 	<head>
-		<meta charset="utf-8">
+		<meta charset="utf-8" />
 		<title>PresentationBridge Client</title>
-		<link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css">
-		<link rel="stylesheet" href="index.css">
-		<script>window.$ = window.jQuery = require('./node_modules/jquery/dist/jquery.min.js');</script>
-		<script src='./node_modules/jquery/dist/jquery.min.js'></script>
-		<script src='./node_modules/bootstrap/dist/js/bootstrap.bundle.js'></script>
+		<link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css" />
+		<link rel="stylesheet" href="index.css" />
+		<script>
+			window.$ = window.jQuery = require('./node_modules/jquery/dist/jquery.min.js')
+		</script>
+		<script src="./node_modules/jquery/dist/jquery.min.js"></script>
+		<script src="./node_modules/bootstrap/dist/js/bootstrap.bundle.js"></script>
 		<script src="./static/mask.ip-input.js"></script>
 		<script>
-			
-			const ipc = require('electron').ipcRenderer;
+			const ipc = require('electron').ipcRenderer
 			//const remote = require('electron').remote;
 			const { shell } = require('electron')
-			
-			const config = require('./config');
 
-			const marked = require("marked");
-			const helpFile = './help.md';
+			const config = require('./config')
+
+			const marked = require('marked')
+			const helpFile = './help.md'
 
 			const { readFile } = require('fs')
-			const package_json = require('./package.json');
+			const package_json = require('./package.json')
 
-			var propresenter_status = 'disconnected';
-			var mdns_propresenter_hosts = [];
-			var mdns_midirelay_hosts = [];
+			var propresenter_status = 'disconnected'
+			var mdns_propresenter_hosts = []
+			var mdns_midirelay_hosts = []
 
-			var presentationbridge_status = 'disconnected';
+			var presentationbridge_status = 'disconnected'
 
-			var plugin_midirelay_enabled = true;
-			var plugin_vista_enabled = true;
-			var plugin_http_enabled = true;
-			var plugin_companion_enabled = true;
+			var plugin_midirelay_enabled = true
+			var plugin_vista_enabled = true
+			var plugin_http_enabled = true
+			var plugin_companion_enabled = true
 
-			//IPCs    
+			//IPCs
 			ipc.on('propresenter_status', function (event, status) {
-				let displayText = '';
-				propresenter_status = status;
-				switch(propresenter_status) {
+				let displayText = ''
+				propresenter_status = status
+				switch (propresenter_status) {
 					case 'force_disconnected':
-						displayText = 'Connect';
-						$('#divProPresenterStatus').text('Disconnected.');
-						propresenter_disablefields(false);
-						$('#btnProPresenterConnect').removeClass('btn-primary btn-danger btn-warning');
-						$('#btnProPresenterConnect').addClass('btn-primary');
-						break;
+						displayText = 'Connect'
+						$('#divProPresenterStatus').text('Disconnected.')
+						propresenter_disablefields(false)
+						$('#btnProPresenterConnect').removeClass('btn-primary btn-danger btn-warning')
+						$('#btnProPresenterConnect').addClass('btn-primary')
+						break
 					case 'connecting':
-						displayText = 'Connecting...';
-						propresenter_disablefields(true);
-						$('#btnProPresenterConnect').removeClass('btn-primary btn-warning btn-danger');
-						$('#btnProPresenterConnect').addClass('btn-warning');
-						break;
+						displayText = 'Connecting...'
+						propresenter_disablefields(true)
+						$('#btnProPresenterConnect').removeClass('btn-primary btn-warning btn-danger')
+						$('#btnProPresenterConnect').addClass('btn-warning')
+						break
 					case 'reconnecting':
-						displayText = 'Reconnecting...';
-						propresenter_disablefields(true);
-						$('#btnProPresenterConnect').removeClass('btn-primary btn-warning btn-danger');
-						$('#btnProPresenterConnect').addClass('btn-warning');
-						break;
+						displayText = 'Reconnecting...'
+						propresenter_disablefields(true)
+						$('#btnProPresenterConnect').removeClass('btn-primary btn-warning btn-danger')
+						$('#btnProPresenterConnect').addClass('btn-warning')
+						break
 					case 'open':
-						displayText = 'Open, Not Authenticated.';
-						$('#btnProPresenterConnect').removeClass('btn-primary btn-warning btn-danger');
-						$('#btnProPresenterConnect').addClass('btn-warning');
-						break;
+						displayText = 'Open, Not Authenticated.'
+						$('#btnProPresenterConnect').removeClass('btn-primary btn-warning btn-danger')
+						$('#btnProPresenterConnect').addClass('btn-warning')
+						break
 					case 'authenticated':
-						displayText = 'Disconnect';
-						$('#divProPresenterStatus').text('Connected');
-						propresenter_disablefields(true);
-						$('#btnProPresenterConnect').removeClass('btn-primary btn-warning btn-danger');
-						$('#btnProPresenterConnect').addClass('btn-danger');
-						break;
+						displayText = 'Disconnect'
+						$('#divProPresenterStatus').text('Connected')
+						propresenter_disablefields(true)
+						$('#btnProPresenterConnect').removeClass('btn-primary btn-warning btn-danger')
+						$('#btnProPresenterConnect').addClass('btn-danger')
+						break
 					case 'badpassword':
-						displayText = 'Connect';
-						$('#divProPresenterStatus').text('Incorrect Password.');
-						propresenter_disablefields(false);
-						$('#btnProPresenterConnect').removeClass('btn-primary btn-warning btn-danger');
-						$('#btnProPresenterConnect').addClass('btn-primary');
-						break;
+						displayText = 'Connect'
+						$('#divProPresenterStatus').text('Incorrect Password.')
+						propresenter_disablefields(false)
+						$('#btnProPresenterConnect').removeClass('btn-primary btn-warning btn-danger')
+						$('#btnProPresenterConnect').addClass('btn-primary')
+						break
 					case 'econnrefused':
-						displayText = 'Connect';
-						$('#divProPresenterStatus').text('Connection Refused. Is ProPresenter running and configured for network access?');
-						$('#btnProPresenterConnect').removeClass('btn-primary btn-warning btn-danger');
-						$('#btnProPresenterConnect').addClass('btn-primary');
-						propresenter_disablefields(false);
-						break;
+						displayText = 'Connect'
+						$('#divProPresenterStatus').text(
+							'Connection Refused. Is ProPresenter running and configured for network access?'
+						)
+						$('#btnProPresenterConnect').removeClass('btn-primary btn-warning btn-danger')
+						$('#btnProPresenterConnect').addClass('btn-primary')
+						propresenter_disablefields(false)
+						break
 					case 'etimedout':
-						displayText = 'Connect';
-						$('#divProPresenterStatus').text('Connection Timed Out. Is ProPresenter running and configured for network access?');
-						$('#btnProPresenterConnect').removeClass('btn-primary btn-warning btn-danger');
-						$('#btnProPresenterConnect').addClass('btn-primary');
-						propresenter_disablefields(false);
-						break;
+						displayText = 'Connect'
+						$('#divProPresenterStatus').text(
+							'Connection Timed Out. Is ProPresenter running and configured for network access?'
+						)
+						$('#btnProPresenterConnect').removeClass('btn-primary btn-warning btn-danger')
+						$('#btnProPresenterConnect').addClass('btn-primary')
+						propresenter_disablefields(false)
+						break
 					default:
-						displayText = propresenter_status;
-						break;
+						displayText = propresenter_status
+						break
 				}
-				$('#btnProPresenterConnect').text(displayText);
-			});
+				$('#btnProPresenterConnect').text(displayText)
+			})
 
-			ipc.on('mdns_propresenter_hosts', function(event, hosts) {
-				mdns_propresenter_hosts = hosts;
-				let htmlAppend = '';
+			ipc.on('mdns_propresenter_hosts', function (event, hosts) {
+				mdns_propresenter_hosts = hosts
+				let htmlAppend = ''
 
 				for (let i = 0; i < mdns_propresenter_hosts.length; i++) {
-					htmlAppend += '<a class="badge badge-pill badge-info" href="#" onclick="propresenter_usemdns(\'' + mdns_propresenter_hosts[i].ip + '\',\'' + mdns_propresenter_hosts[i].port + '\');">' + mdns_propresenter_hosts[i].name + ' (' + mdns_propresenter_hosts[i].ip + ')</a>';					
+					htmlAppend +=
+						'<a class="badge badge-pill badge-info" href="#" onclick="propresenter_usemdns(\'' +
+						mdns_propresenter_hosts[i].ip +
+						"','" +
+						mdns_propresenter_hosts[i].port +
+						'\');">' +
+						mdns_propresenter_hosts[i].name +
+						' (' +
+						mdns_propresenter_hosts[i].ip +
+						')</a>'
 				}
-				$('#divProPresenterHosts').html(htmlAppend);
-			});
+				$('#divProPresenterHosts').html(htmlAppend)
+			})
 
-			ipc.on('mdns_midirelay_hosts', function(event, hosts) {
-				mdns_midirelay_hosts = hosts;
-				let htmlAppend = '';
+			ipc.on('mdns_midirelay_hosts', function (event, hosts) {
+				mdns_midirelay_hosts = hosts
+				let htmlAppend = ''
 
-				console.log(mdns_midirelay_hosts);
+				console.log(mdns_midirelay_hosts)
 				for (let i = 0; i < mdns_midirelay_hosts.length; i++) {
-					htmlAppend += '<a class="badge badge-pill badge-info" href="#" onclick="midirelay_usemdns(\'' + mdns_midirelay_hosts[i].ip + '\',\'' + mdns_midirelay_hosts[i].port + '\');">' + mdns_midirelay_hosts[i].ip + ' (' + mdns_midirelay_hosts[i].port + ')</a>';					
+					htmlAppend +=
+						'<a class="badge badge-pill badge-info" href="#" onclick="midirelay_usemdns(\'' +
+						mdns_midirelay_hosts[i].ip +
+						"','" +
+						mdns_midirelay_hosts[i].port +
+						'\');">' +
+						mdns_midirelay_hosts[i].ip +
+						' (' +
+						mdns_midirelay_hosts[i].port +
+						')</a>'
 				}
-				$('#divMidiRelayHosts').html(htmlAppend);
-			});
+				$('#divMidiRelayHosts').html(htmlAppend)
+			})
 
 			ipc.on('presentationbridge_status', function (event, status) {
-				let displayText = '';
-				presentationbridge_status = status;
-				switch(presentationbridge_status) {
+				let displayText = ''
+				presentationbridge_status = status
+				switch (presentationbridge_status) {
 					case 'disconnected':
-						displayText = 'Connect';
-						$('#divPPresentationBridgeStatus').text('Disconnected.');
-						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger');
-						$('#btnPresentationBridgeConnect').addClass('btn-primary');
-						presentationbridge_disablefields(false);
-						break;
+						displayText = 'Connect'
+						$('#divPPresentationBridgeStatus').text('Disconnected.')
+						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger')
+						$('#btnPresentationBridgeConnect').addClass('btn-primary')
+						presentationbridge_disablefields(false)
+						break
 					case 'connecting':
-						displayText = 'Connecting...';
-						presentationbridge_disablefields(false);
-						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger');
-						$('#btnPresentationBridgeConnect').addClass('btn-warning');
-						break;
+						displayText = 'Connecting...'
+						presentationbridge_disablefields(false)
+						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger')
+						$('#btnPresentationBridgeConnect').addClass('btn-warning')
+						break
 					case 'connected':
-						displayText = 'Authenticating...';
-						presentationbridge_disablefields(true);
-						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger');
-						$('#btnPresentationBridgeConnect').addClass('btn-warning');
-						break;
+						displayText = 'Authenticating...'
+						presentationbridge_disablefields(true)
+						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger')
+						$('#btnPresentationBridgeConnect').addClass('btn-warning')
+						break
 					case 'authenticated':
-						displayText = 'Disconnect';
-						$('#divPresentationBridgeStatus').text('Connected');
-						presentationbridge_disablefields(true);
-						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger');
-						$('#btnPresentationBridgeConnect').addClass('btn-danger');
-						break;
+						displayText = 'Disconnect'
+						$('#divPresentationBridgeStatus').text('Connected')
+						presentationbridge_disablefields(true)
+						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger')
+						$('#btnPresentationBridgeConnect').addClass('btn-danger')
+						break
 					case 'badid':
-						displayText = 'Connect';
-						presentationbridge_disablefields(false);
-						$('#divPresentationBridgeStatus').text('Invalid Bridge ID.');
-						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger');
-						$('#btnPresentationBridgeConnect').addClass('btn-primary');
-						break;
+						displayText = 'Connect'
+						presentationbridge_disablefields(false)
+						$('#divPresentationBridgeStatus').text('Invalid Bridge ID.')
+						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger')
+						$('#btnPresentationBridgeConnect').addClass('btn-primary')
+						break
 					case 'badpassword':
-						displayText = 'Connect';
-						presentationbridge_disablefields(false);
-						$('#divPresentationBridgeStatus').text('Incorrect Bridge ID or Password.');
-						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger');
-						$('#btnPresentationBridgeConnect').addClass('btn-primary');
-						break;
+						displayText = 'Connect'
+						presentationbridge_disablefields(false)
+						$('#divPresentationBridgeStatus').text('Incorrect Bridge ID or Password.')
+						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger')
+						$('#btnPresentationBridgeConnect').addClass('btn-primary')
+						break
 					case 'inuse':
-						displayText = 'Connect';
-						presentationbridge_disablefields(false);
-						$('#divPresentationBridgeStatus').text('This Bridge is already in use elsewhere.');
-						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger');
-						$('#btnPresentationBridgeConnect').addClass('btn-primary');
-						break;
+						displayText = 'Connect'
+						presentationbridge_disablefields(false)
+						$('#divPresentationBridgeStatus').text('This Bridge is already in use elsewhere.')
+						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger')
+						$('#btnPresentationBridgeConnect').addClass('btn-primary')
+						break
 					case 'econnrefused':
-						displayText = 'Connect';
-						presentationbridge_disablefields(false);
-						$('#divPresentationBridgeStatus').text('Connection Refused. Is Presentation Bridge running on the server?');
-						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger');
-						$('#btnPresentationBridgeConnect').addClass('btn-primary');
-						break;
+						displayText = 'Connect'
+						presentationbridge_disablefields(false)
+						$('#divPresentationBridgeStatus').text('Connection Refused. Is Presentation Bridge running on the server?')
+						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger')
+						$('#btnPresentationBridgeConnect').addClass('btn-primary')
+						break
 					case 'etimedout':
-						displayText = 'Connect';
-						presentationbridge_disablefields(false);
-						$('#divPresentationBridgeStatus').text('Connection Timed Out. Is Presentation Bridge running on the server?');
-						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger');
-						$('#btnPresentationBridgeConnect').addClass('btn-primary');
-						break;
+						displayText = 'Connect'
+						presentationbridge_disablefields(false)
+						$('#divPresentationBridgeStatus').text(
+							'Connection Timed Out. Is Presentation Bridge running on the server?'
+						)
+						$('#btnPresentationBridgeConnect').removeClass('btn-primary btn-warning btn-danger')
+						$('#btnPresentationBridgeConnect').addClass('btn-primary')
+						break
 					default:
-						displayText = presentationbridge_status;
-						break;
+						displayText = presentationbridge_status
+						break
 				}
-				$('#btnPresentationBridgeConnect').text(displayText);
-			});
+				$('#btnPresentationBridgeConnect').text(displayText)
+			})
 
-			$( document ).ready(function() {
+			$(document).ready(function () {
 				$('#divTopLine').html('  v' + package_json.version)
 
-				$('#switchPPimages').prop('checked', config.get('switch_PPimages'));
-				$('#switchPPUCase').prop('checked', config.get('switch_PPUCase'));
-				$('#txtProPresenterIP').val(config.get('propresenterIP'));
-				$('#txtProPresenterPort').val(config.get('propresenterPort'));
-				$('#txtProPresenterPassword').val(config.get('propresenterPassword'));
+				$('#switchPPimages').prop('checked', config.get('switch_PPimages'))
+				$('#switchPPUCase').prop('checked', config.get('switch_PPUCase'))
+				$('#txtProPresenterIP').val(config.get('propresenterIP'))
+				$('#txtProPresenterPort').val(config.get('propresenterPort'))
+				$('#txtProPresenterPassword').val(config.get('propresenterPassword'))
 
-				$('#txtPresentationBridgeHost').val(config.get('presentationbridgeHost'));
-				$('#txtPresentationBridgePort').val(config.get('presentationbridgePort'));
-				$('#txtPresentationBridgeID').val(config.get('presentationbridgeID'));
-				$('#txtPresentationBridgePassword').val(config.get('presentationbridgePassword'));
+				$('#txtPresentationBridgeHost').val(config.get('presentationbridgeHost'))
+				$('#txtPresentationBridgePort').val(config.get('presentationbridgePort'))
+				$('#txtPresentationBridgeID').val(config.get('presentationbridgeID'))
+				$('#txtPresentationBridgePassword').val(config.get('presentationbridgePassword'))
 
-				$('#switchMidiRelay').prop('checked', config.get('plugin_midirelay'));
+				$('#switchMidiRelay').prop('checked', config.get('plugin_midirelay'))
 				plugin_enable('midirelay')
-				$('#txtMIDIRelayIP').val(config.get('midirelayIP'));
-				$('#txtMIDIRelayPort').val(config.get('midirelayPort'));
-				$('#txtMIDIRelayMIDIPort').val(config.get('midirelayMIDIPort'));
+				$('#txtMIDIRelayIP').val(config.get('midirelayIP'))
+				$('#txtMIDIRelayPort').val(config.get('midirelayPort'))
+				$('#txtMIDIRelayMIDIPort').val(config.get('midirelayMIDIPort'))
 
-				$('#switchVista').prop('checked', config.get('plugin_vista'));
+				$('#switchVista').prop('checked', config.get('plugin_vista'))
 				plugin_enable('vista')
-				$('#txtVistaIP').val(config.get('vistaIP'));
-				$('#txtVistaPort').val(config.get('vistaPort'));
-				$('#txtVistaMIDIPort').val(config.get('vistaMIDIPort'));
+				$('#txtVistaIP').val(config.get('vistaIP'))
+				$('#txtVistaPort').val(config.get('vistaPort'))
+				$('#txtVistaMIDIPort').val(config.get('vistaMIDIPort'))
 
-				$('#switchHttp').prop('checked', config.get('plugin_http'));
+				$('#switchHttp').prop('checked', config.get('plugin_http'))
 
-				$('#switchCompanion').prop('checked', config.get('plugin_companion'));
+				$('#switchCompanion').prop('checked', config.get('plugin_companion'))
 				plugin_enable('companion')
-				$('#txtCompanionIP').val(config.get('companionIP'));
-				$('#txtCompanionPort').val(config.get('companionPort'));
+				$('#txtCompanionIP').val(config.get('companionIP'))
+				$('#txtCompanionPort').val(config.get('companionPort'))
 
-				$('#switchMdns').prop('checked', config.get('switch_mdns'));
-				$('#switchSettings').prop('checked', config.get('switch_settings'));
-				$('#switchMonitor').prop('checked', config.get('switch_monitor'));
+				$('#switchMdns').prop('checked', config.get('switch_mdns'))
+				$('#switchSettings').prop('checked', config.get('switch_settings'))
+				$('#switchMonitor').prop('checked', config.get('switch_monitor'))
 
-				ipc.send('propresenter_status');
-				ipc.send('mdns_propresenter_hosts');
-				ipc.send('mdns_midirelay_hosts');
+				ipc.send('propresenter_status')
+				ipc.send('mdns_propresenter_hosts')
+				ipc.send('mdns_midirelay_hosts')
 
-				$("body").tooltip({ selector: '[data-toggle=tooltip]' });
+				$('body').tooltip({ selector: '[data-toggle=tooltip]' })
 
-				readFile(helpFile, 'utf8' , (err, data) => {
+				readFile(helpFile, 'utf8', (err, data) => {
 					if (err) {
-						console.error(err);
-						return;
+						console.error(err)
+						return
 					}
-					$('#divHelpBody').html(marked(data));
-				});
+					$('#divHelpBody').html(marked(data))
+				})
 
-				$('[ip-mask]').ipAddress();
-			});
+				$('[ip-mask]').ipAddress()
+			})
 
 			function propresenter_connect() {
-				let propresenterIP = $('#txtProPresenterIP').val();
-				let propresenterPort = $('#txtProPresenterPort').val();
-				let propresenterPassword = $('#txtProPresenterPassword').val();
+				let propresenterIP = $('#txtProPresenterIP').val()
+				let propresenterPort = $('#txtProPresenterPort').val()
+				let propresenterPassword = $('#txtProPresenterPassword').val()
 
-				ipc.send('propresenter_disconnect');
+				ipc.send('propresenter_disconnect')
 
-				if ((propresenter_status === 'authenticated') || (propresenter_status === 'connecting')) {
-					$('#btnProPresenterConnect').text('Disconnecting...');
-					$('#btnProPresenterConnect').removeClass("btn-primary").addClass("btn-warning");
+				if (propresenter_status === 'authenticated' || propresenter_status === 'connecting') {
+					$('#btnProPresenterConnect').text('Disconnecting...')
+					$('#btnProPresenterConnect').removeClass('btn-primary').addClass('btn-warning')
 					//ipc.send('propresenter_disconnect');
-				}
-				else {
-					$('#btnProPresenterConnect').text('Connecting...');
-					$('#btnProPresenterConnect').removeClass("btn-primary").addClass("btn-warning");
-					config.set('propresenterIP', propresenterIP);
-					config.set('propresenterPort', propresenterPort);
-					config.set('propresenterPassword', propresenterPassword);
-					ipc.send('propresenter_connect');
+				} else {
+					$('#btnProPresenterConnect').text('Connecting...')
+					$('#btnProPresenterConnect').removeClass('btn-primary').addClass('btn-warning')
+					config.set('propresenterIP', propresenterIP)
+					config.set('propresenterPort', propresenterPort)
+					config.set('propresenterPassword', propresenterPassword)
+					ipc.send('propresenter_connect')
 				}
 			}
 
 			function presentationbridge_connect() {
-				let presentationbridgeHost = $('#txtPresentationBridgeHost').val();
-				let presentationbridgePort = $('#txtPresentationBridgePort').val();
-				let presentationbridgeID = $('#txtPresentationBridgeID').val();
-				let presentationbridgePassword = $('#txtPresentationBridgePassword').val();
+				let presentationbridgeHost = $('#txtPresentationBridgeHost').val()
+				let presentationbridgePort = $('#txtPresentationBridgePort').val()
+				let presentationbridgeID = $('#txtPresentationBridgeID').val()
+				let presentationbridgePassword = $('#txtPresentationBridgePassword').val()
 
 				if (presentationbridge_status === 'connecting') {
-					ipc.send('presentationbridge_force_disconnect');
-				}				
+					ipc.send('presentationbridge_force_disconnect')
+				}
 
 				if (presentationbridge_status === 'authenticated') {
-					ipc.send('presentationbridge_disconnect');
-				}
-				else {
-					config.set('presentationbridgeHost', presentationbridgeHost);
-					config.set('presentationbridgePort', presentationbridgePort);
-					config.set('presentationbridgeID', presentationbridgeID);
-					config.set('presentationbridgePassword', presentationbridgePassword);
-					ipc.send('presentationbridge_connect');
+					ipc.send('presentationbridge_disconnect')
+				} else {
+					config.set('presentationbridgeHost', presentationbridgeHost)
+					config.set('presentationbridgePort', presentationbridgePort)
+					config.set('presentationbridgeID', presentationbridgeID)
+					config.set('presentationbridgePassword', presentationbridgePassword)
+					ipc.send('presentationbridge_connect')
 				}
 			}
 
 			function propresenter_disconnect() {
-				ipc.send('propresenter_disconnect');
+				ipc.send('propresenter_disconnect')
 			}
 
 			function propresenter_disablefields(value) {
-				$('#txtProPresenterIP').prop('disabled', value);
-				$('#txtProPresenterPort').prop('disabled', value);
-				$('#txtProPresenterPassword').prop('disabled', value);
+				$('#txtProPresenterIP').prop('disabled', value)
+				$('#txtProPresenterPort').prop('disabled', value)
+				$('#txtProPresenterPassword').prop('disabled', value)
 			}
 
 			function propresenter_usemdns(ip, port) {
-				propresenter_disconnect();
-				$('#txtProPresenterIP').val(ip);
-				$('#txtProPresenterPort').val(port);
+				propresenter_disconnect()
+				$('#txtProPresenterIP').val(ip)
+				$('#txtProPresenterPort').val(port)
 			}
 
 			function midirelay_usemdns(ip, port) {
-				$('#txtMIDIRelayIP').val(ip);
-				$('#txtMIDIRelayPort').val(port);
+				$('#txtMIDIRelayIP').val(ip)
+				$('#txtMIDIRelayPort').val(port)
 			}
 
 			function presentationbridge_disablefields(value) {
-				$('#txtPresentationBridgeHost').prop('disabled', value);
-				$('#txtPresentationBridgePort').prop('disabled', value);
-				$('#txtPresentationBridgeID').prop('disabled', value);
-				$('#txtPresentationBridgePassword').prop('disabled', value);
+				$('#txtPresentationBridgeHost').prop('disabled', value)
+				$('#txtPresentationBridgePort').prop('disabled', value)
+				$('#txtPresentationBridgeID').prop('disabled', value)
+				$('#txtPresentationBridgePassword').prop('disabled', value)
 			}
 
 			function plugin_enable(plugin) {
-				let enable = '';
+				let enable = ''
 				let divTarget = '#' + plugin + 'Settings'
 
-				switch(plugin) {
+				switch (plugin) {
 					case 'midirelay':
-						enable = $('#switchMidiRelay').prop('checked');
-						break;
+						enable = $('#switchMidiRelay').prop('checked')
+						break
 					case 'vista':
-						enable = $('#switchVista').prop('checked');
-						break;
+						enable = $('#switchVista').prop('checked')
+						break
 					case 'http':
-						enable = $('#switchHttp').prop('checked');
-						break;
+						enable = $('#switchHttp').prop('checked')
+						break
 					case 'companion':
-						enable = $('#switchCompanion').prop('checked');
-						break;
+						enable = $('#switchCompanion').prop('checked')
+						break
 					default:
-						break;
+						break
 				}
 				enable ? $(divTarget).collapse('show') : $(divTarget).collapse('hide')
-				config.set('plugin_' + plugin, enable);
+				config.set('plugin_' + plugin, enable)
 			}
 			function switch_enable(item) {
-				let enable = '';
+				let enable = ''
 
-				switch(item) {
+				switch (item) {
 					case 'mdns':
-						enable = $('#switchMdns').prop('checked');
-						break;
+						enable = $('#switchMdns').prop('checked')
+						break
 					case 'settings':
-						enable = $('#switchSettings').prop('checked');
-						break;
+						enable = $('#switchSettings').prop('checked')
+						break
 					case 'monitor':
-						enable = $('#switchMonitor').prop('checked');
-						break;
+						enable = $('#switchMonitor').prop('checked')
+						break
 					case 'PPimages':
-						enable = $('#switchPPimages').prop('checked');
-						break;
+						enable = $('#switchPPimages').prop('checked')
+						break
 					case 'PPUCase':
-					enable = $('#switchPPUCase').prop('checked');
-					break;
+						enable = $('#switchPPUCase').prop('checked')
+						break
 					default:
-						break;
+						break
 				}
 
-				config.set('switch_' + item, enable);
+				config.set('switch_' + item, enable)
 			}
 			function save() {
-				config.set('midirelayIP', $('#txtMIDIRelayIP').val());
-				config.set('midirelayPort', $('#txtMIDIRelayPort').val());
-				config.set('midirelayMIDIPort', $('#txtMIDIRelayMIDIPort').val());
+				config.set('midirelayIP', $('#txtMIDIRelayIP').val())
+				config.set('midirelayPort', $('#txtMIDIRelayPort').val())
+				config.set('midirelayMIDIPort', $('#txtMIDIRelayMIDIPort').val())
 
-				config.set('vistaIP', $('#txtVistaIP').val());
-				config.set('vistaPort', $('#txtVistaPort').val());
-				config.set('vistaMIDIPort', $('#txtVistaMIDIPort').val());
+				config.set('vistaIP', $('#txtVistaIP').val())
+				config.set('vistaPort', $('#txtVistaPort').val())
+				config.set('vistaMIDIPort', $('#txtVistaMIDIPort').val())
 
-				config.set('companionIP', $('#txtCompanionIP').val());
-				config.set('companionPort', $('#txtCompanionPort').val());
+				config.set('companionIP', $('#txtCompanionIP').val())
+				config.set('companionPort', $('#txtCompanionPort').val())
 			}
 
 			function mdnsRescan() {
-				ipc.send('mdns_rescan');
+				ipc.send('mdns_rescan')
 			}
 
 			function openAuthor() {
-				shell.openExternal('http://techministry.blog');
+				shell.openExternal('http://techministry.blog')
 			}
 		</script>
 	</head>
@@ -391,293 +414,388 @@
 		<div class="container">
 			<header>
 				<h1>PresentationBridge Client</h1>
-				<h2>Created by <a href="#" onclick="openAuthor();">techministry.blog</a></h2><h3  id='divTopLine'></h3>
-				<div class='vertical-space'></div>
+				<h2>Created by <a href="#" onclick="openAuthor();">techministry.blog</a></h2>
+				<h3 id="divTopLine"></h3>
+				<div class="vertical-space"></div>
 			</header>
 
 			<section>
-				<div class='horizontal-line'></div>
-				<div class='form-row'>
-					<div class='form-group col-md-2'>
-					<b>ProPresenter:</b>
+				<div class="horizontal-line"></div>
+				<div class="form-row">
+					<div class="form-group col-md-2">
+						<b>ProPresenter:</b>
 					</div>
-					<div class='form-group col-md-10'>
-						<div id='divProPresenterStatus'></div>
+					<div class="form-group col-md-10">
+						<div id="divProPresenterStatus"></div>
 					</div>
 				</div>
-				<div class='form-row'>
-					<div class='form-group col-md-4'>
-						<button class='btn btn-primary' id='btnProPresenterConnect' onclick='propresenter_connect();'>Connect ProPresenter</button>
+				<div class="form-row">
+					<div class="form-group col-md-4">
+						<button class="btn btn-primary" id="btnProPresenterConnect" onclick="propresenter_connect();">
+							Connect ProPresenter
+						</button>
 					</div>
-					<div class='form-group col-md-4'>
+					<div class="form-group col-md-4">
 						<div class="input-group">
 							<div class="input-group-prepend">
 								<label class="input-group-text" for="txtProPresenterIP">IP</label>
 							</div>
-							<input type="text"  id='txtProPresenterIP' class='form-control' minlength="7" maxlength="15" ip-mask value="127.0.0.1" placeholder="000.000.000.000">
+							<input
+								type="text"
+								id="txtProPresenterIP"
+								class="form-control"
+								minlength="7"
+								maxlength="15"
+								ip-mask
+								value="127.0.0.1"
+								placeholder="000.000.000.000"
+							/>
 						</div>
 					</div>
-					<div class='form-group col-md-4'>
+					<div class="form-group col-md-4">
 						<div class="input-group">
 							<div class="input-group-prepend">
 								<label class="input-group-text" for="txtProPresenterPort">Stage Port</label>
-							</div>	
-							<input type='number' id='txtProPresenterPort' class='form-control'/>
+							</div>
+							<input type="number" id="txtProPresenterPort" class="form-control" />
 						</div>
 					</div>
 				</div>
-				<div class='form-row'>
-					<div class='form-group col-md-8'>
+				<div class="form-row">
+					<div class="form-group col-md-8">
 						<div class="input-group">
 							<div class="input-group-prepend">
 								<label class="input-group-text" for="txtProPresenterPassword">Stage Display Password</label>
 							</div>
-							<input type='password' id='txtProPresenterPassword' class='form-control' />
+							<input type="password" id="txtProPresenterPassword" class="form-control" />
 						</div>
 					</div>
-					<div class='form-group col-md-4'>
-						<div id='divProPresenterHosts'></div>
+					<div class="form-group col-md-4">
+						<div id="divProPresenterHosts"></div>
 					</div>
 				</div>
-				<div class='form-row'>
-					<div class='form-group col-md-3'>
+				<div class="form-row">
+					<div class="form-group col-md-3">
 						<div class="custom-control custom-switch">
-							<input type="checkbox" class="custom-control-input" id="switchPPimages" onClick="switch_enable('PPimages');">
+							<input
+								type="checkbox"
+								class="custom-control-input"
+								id="switchPPimages"
+								onClick="switch_enable('PPimages');"
+							/>
 							<label class="custom-control-label" for="switchPPimages"><b>Send Images</b></label>
 						</div>
 					</div>
-					<div class='form-group col-md-3'>
+					<div class="form-group col-md-3">
 						<div class="custom-control custom-switch">
-							<input type="checkbox" class="custom-control-input" id="switchPPUCase" onClick="switch_enable('PPUCase');">
+							<input
+								type="checkbox"
+								class="custom-control-input"
+								id="switchPPUCase"
+								onClick="switch_enable('PPUCase');"
+							/>
 							<label class="custom-control-label" for="switchPPUCase"><b>Upper Case</b></label>
 						</div>
 					</div>
 				</div>
 			</section>
 			<section>
-				<div class='horizontal-line'></div>
-				<div class='form-row'>
-					<div class='form-group col-md-4'>
+				<div class="horizontal-line"></div>
+				<div class="form-row">
+					<div class="form-group col-md-4">
 						<b>Presentation Bridge:</b>
 					</div>
-					<div class='form-group col-md-8'>
-						<div id='divPresentationBridgeStatus'></div>
+					<div class="form-group col-md-8">
+						<div id="divPresentationBridgeStatus"></div>
 					</div>
 				</div>
-				<div class='form-row'>
-					<div class='form-group col-md-4'>
-							<button class='btn btn-primary' id='btnPresentationBridgeConnect' onclick='presentationbridge_connect();'>Connect PresentationBridge</button>
+				<div class="form-row">
+					<div class="form-group col-md-4">
+						<button class="btn btn-primary" id="btnPresentationBridgeConnect" onclick="presentationbridge_connect();">
+							Connect PresentationBridge
+						</button>
 					</div>
-					<div class='form-group col-md-4'>
+					<div class="form-group col-md-4">
 						<div class="input-group">
 							<div class="input-group-prepend">
 								<label class="input-group-text" for="txtPresentationBridgeHost">IP</label>
 							</div>
-							<input type="text"  id='txtPresentationBridgeHost' class='form-control' minlength="7" maxlength="15" ip-mask value="192.168.1.1" placeholder="000.000.000.000">
+							<input
+								type="text"
+								id="txtPresentationBridgeHost"
+								class="form-control"
+								minlength="7"
+								maxlength="15"
+								ip-mask
+								value="192.168.1.1"
+								placeholder="000.000.000.000"
+							/>
 						</div>
 					</div>
-					<div class='form-group col-md-4'>
+					<div class="form-group col-md-4">
 						<div class="input-group">
 							<div class="input-group-prepend">
 								<label class="input-group-text" for="txtPresentationBridgePort">Bridge Port</label>
-							</div>	
-							<input type='number' id='txtPresentationBridgePort' class='form-control'/>
+							</div>
+							<input type="number" id="txtPresentationBridgePort" class="form-control" />
 						</div>
 					</div>
 				</div>
-				<div class='form-row'>
-					<div class='form-group col-md-8'>
+				<div class="form-row">
+					<div class="form-group col-md-8">
 						<div class="input-group">
 							<div class="input-group-prepend">
 								<label class="input-group-text" for="txtPresentationBridgePassword">Bridge Password</label>
 							</div>
-							<input type='password' id='txtPresentationBridgePassword' class='form-control' />
+							<input type="password" id="txtPresentationBridgePassword" class="form-control" />
 						</div>
 					</div>
-					<div class='form-group col-md-4'>
+					<div class="form-group col-md-4">
 						<div class="input-group">
 							<div class="input-group-prepend">
 								<label class="input-group-text" for="txtPresentationBridgeID">Bridge ID</label>
 							</div>
-							<input type='text' id='txtPresentationBridgeID' class='form-control' />
+							<input type="text" id="txtPresentationBridgeID" class="form-control" />
 						</div>
 					</div>
 				</div>
 			</section>
 			<section>
-				<div class='horizontal-line'></div>
-				<div class='form-row'>
-					<div class='form-group col-md-4'>
-					<div class="custom-control custom-switch">
-						<input type="checkbox" class="custom-control-input" id="switchMidiRelay" onClick="plugin_enable('midirelay');">
-						<label class="custom-control-label" for="switchMidiRelay"><b>midi-relay</b></label>
+				<div class="horizontal-line"></div>
+				<div class="form-row">
+					<div class="form-group col-md-4">
+						<div class="custom-control custom-switch">
+							<input
+								type="checkbox"
+								class="custom-control-input"
+								id="switchMidiRelay"
+								onClick="plugin_enable('midirelay');"
+							/>
+							<label class="custom-control-label" for="switchMidiRelay"><b>midi-relay</b></label>
 						</div>
 					</div>
-					<div class='form-group col-md-8'>
-						<div id='divMidiRelayHosts'></div>
+					<div class="form-group col-md-8">
+						<div id="divMidiRelayHosts"></div>
 					</div>
 				</div>
-				<div class='form-row collapse' id="midirelaySettings">
-					<div class='form-group col-md-4'>
+				<div class="form-row collapse" id="midirelaySettings">
+					<div class="form-group col-md-4">
 						<div class="input-group input-group-sm">
 							<div class="input-group-prepend">
 								<label class="input-group-text" for="txtMIDIRelayMIDIPort">MIDI Port</label>
-							</div>	
-							<input type='text' id='txtMIDIRelayMIDIPort' class='form-control'/>
+							</div>
+							<input type="text" id="txtMIDIRelayMIDIPort" class="form-control" />
 						</div>
 					</div>
-					<div class='form-group col-md-4'>
+					<div class="form-group col-md-4">
 						<div class="input-group input-group-sm">
 							<div class="input-group-prepend">
 								<label class="input-group-text" for="txtMIDIRelayIP">IP</label>
 							</div>
-							<input type="text"  id='txtMIDIRelayIP' class='form-control' minlength="7" maxlength="15" ip-mask value="127.0.0.1" placeholder="000.000.000.000">
+							<input
+								type="text"
+								id="txtMIDIRelayIP"
+								class="form-control"
+								minlength="7"
+								maxlength="15"
+								ip-mask
+								value="127.0.0.1"
+								placeholder="000.000.000.000"
+							/>
 						</div>
 					</div>
-					<div class='form-group col-md-4'>
+					<div class="form-group col-md-4">
 						<div class="input-group input-group-sm">
 							<div class="input-group-prepend">
 								<label class="input-group-text" for="txtMIDIRelayPort">Port</label>
-							</div>	
-							<input type='number' id='txtMIDIRelayPort' class='form-control'/>
+							</div>
+							<input type="number" id="txtMIDIRelayPort" class="form-control" />
 						</div>
 					</div>
 				</div>
 			</section>
 			<section>
-				<div class='horizontal-line'></div>
-				<div class='form-row'>
-					<div class='form-group col-md-6'>
+				<div class="horizontal-line"></div>
+				<div class="form-row">
+					<div class="form-group col-md-6">
 						<div class="custom-control custom-switch">
-							<input type="checkbox" class="custom-control-input" id="switchVista" onClick="plugin_enable('vista');">
+							<input type="checkbox" class="custom-control-input" id="switchVista" onClick="plugin_enable('vista');" />
 							<label class="custom-control-label" for="switchVista"><b>Chroma-Q Vista (uses midi-relay)</b></label>
-							</div>
+						</div>
 					</div>
 				</div>
-				<div class='form-row collapse' id="vistaSettings">
-					<div class='form-group col-md-4'>
+				<div class="form-row collapse" id="vistaSettings">
+					<div class="form-group col-md-4">
 						<div class="input-group input-group-sm">
 							<div class="input-group-prepend">
 								<label class="input-group-text" for="txtVistaMIDIPort">MIDI Port</label>
-							</div>	
-							<input type='text' id='txtVistaMIDIPort' class='form-control'/>
+							</div>
+							<input type="text" id="txtVistaMIDIPort" class="form-control" />
 						</div>
 					</div>
-					<div class='form-group col-md-4'>
+					<div class="form-group col-md-4">
 						<div class="input-group input-group-sm">
 							<div class="input-group-prepend">
 								<label class="input-group-text" for="txtVistaIP">IP</label>
 							</div>
-							<input type="text"  id='txtVistaIP' class='form-control' minlength="7" maxlength="15" ip-mask value="127.0.0.1" placeholder="000.000.000.000">
+							<input
+								type="text"
+								id="txtVistaIP"
+								class="form-control"
+								minlength="7"
+								maxlength="15"
+								ip-mask
+								value="127.0.0.1"
+								placeholder="000.000.000.000"
+							/>
 						</div>
 					</div>
-					<div class='form-group col-md-4'>
+					<div class="form-group col-md-4">
 						<div class="input-group input-group-sm">
 							<div class="input-group-prepend">
 								<label class="input-group-text" for="txtVistaPort">Port</label>
-							</div>	
-							<input type='number' id='txtVistaPort' class='form-control'/>
+							</div>
+							<input type="number" id="txtVistaPort" class="form-control" />
 						</div>
 					</div>
 				</div>
 			</section>
 			<section>
-				<div class='horizontal-line' style="padding-bottom: 4px;"></div>
-				<div class='form-row'>
-					<div class='form-group col-md-4'>
+				<div class="horizontal-line" style="padding-bottom: 4px"></div>
+				<div class="form-row">
+					<div class="form-group col-md-4">
 						<div class="custom-control custom-switch">
-							<input type="checkbox" class="custom-control-input" id="switchHttp" onClick="plugin_enable('http');">
+							<input type="checkbox" class="custom-control-input" id="switchHttp" onClick="plugin_enable('http');" />
 							<label class="custom-control-label" for="switchHttp"><b>HTTP Requests</b></label>
-							</div>
+						</div>
 					</div>
-					<div class='form-group col-md-4'>
+					<div class="form-group col-md-4">
 						<div class="custom-control custom-switch">
-							<input type="checkbox" class="custom-control-input" id="switchCompanion" onClick="plugin_enable('companion');">
+							<input
+								type="checkbox"
+								class="custom-control-input"
+								id="switchCompanion"
+								onClick="plugin_enable('companion');"
+							/>
 							<label class="custom-control-label" for="switchCompanion"><b>Companion Buttons</b></label>
-							</div>
+						</div>
 					</div>
 				</div>
-				<div class='form-row collapse' id="companionSettings">
-					<div class='form-group col-md-4'>
-					</div>
-					<div class='form-group col-md-4'>
+				<div class="form-row collapse" id="companionSettings">
+					<div class="form-group col-md-4"></div>
+					<div class="form-group col-md-4">
 						<div class="input-group input-group-sm">
 							<div class="input-group-prepend">
 								<label class="input-group-text" for="txtCompanionIP">IP</label>
 							</div>
-							<input type="text"  id='txtCompanionIP' class='form-control' minlength="7" maxlength="15" pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$">
+							<input
+								type="text"
+								id="txtCompanionIP"
+								class="form-control"
+								minlength="7"
+								maxlength="15"
+								pattern="^((\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$"
+							/>
 						</div>
 					</div>
-					<div class='form-group col-md-4'>
+					<div class="form-group col-md-4">
 						<div class="input-group input-group-sm">
 							<div class="input-group-prepend">
 								<label class="input-group-text" for="txtCompanionPort">Port</label>
-							</div>	
-							<input type='number' id='txtCompanionPort' class='form-control'/>
+							</div>
+							<input type="number" id="txtCompanionPort" class="form-control" />
 						</div>
 					</div>
 				</div>
 			</section>
+			<section></section>
 			<section>
-		</section>
-		<section>
-			<div class='horizontal-line'></div>
-			<div class='row'>
-				<div class='form-group col-md-1 d-flex align-items-center justify-content-start'>
-					<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#helpModal">
-						Help
-					</button>
-				</div>
-				<div class='form-group col-md-2 d-flex align-items-center justify-content-center'>
-					<div class="text-right">
-						<button type="button" id="btnSave" class="btn btn-info" data-toggle="tooltip" data-placement="top" title="Re-scan mdns" onclick='mdnsRescan();'>mdns</button>
+				<div class="horizontal-line"></div>
+				<div class="row">
+					<div class="form-group col-md-1 d-flex align-items-center justify-content-start">
+						<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#helpModal">Help</button>
 					</div>
-				</div>
-				<div class='form-group col-md-6' style="text-align:center"><b>Start-up mdns scan and window visibility</b>
-					<div class='row'>
-						<div class='form-group col-md-4'>
-							<div class="custom-control custom-switch">
-								<input type="checkbox" class="custom-control-input" id="switchMdns" onClick="switch_enable('mdns');">
-								<label class="custom-control-label" for="switchMdns"><b>mdns</b></label>
-							</div>
-						</div>
-						<div class='form-group col-md-4'>
-							<div class="custom-control custom-switch">
-								<input type="checkbox" class="custom-control-input" id="switchSettings" onClick="switch_enable('settings');">
-								<label class="custom-control-label" for="switchSettings"><b>Settings</b></label>
-							</div>
-						</div>
-						<div class='form-group col-md-4'>
-							<div class="custom-control custom-switch">
-								<input type="checkbox" class="custom-control-input" id="switchMonitor" onClick="switch_enable('monitor');">
-								<label class="custom-control-label" for="switchMonitor"><b>Monitor</b></label>
-							</div>
+					<div class="form-group col-md-2 d-flex align-items-center justify-content-center">
+						<div class="text-right">
+							<button
+								type="button"
+								id="btnSave"
+								class="btn btn-info"
+								data-toggle="tooltip"
+								data-placement="top"
+								title="Re-scan mdns"
+								onclick="mdnsRescan();"
+							>
+								mdns
+							</button>
 						</div>
 					</div>
+					<div class="form-group col-md-6" style="text-align: center">
+						<b>Start-up mdns scan and window visibility</b>
+						<div class="row">
+							<div class="form-group col-md-4">
+								<div class="custom-control custom-switch">
+									<input
+										type="checkbox"
+										class="custom-control-input"
+										id="switchMdns"
+										onClick="switch_enable('mdns');"
+									/>
+									<label class="custom-control-label" for="switchMdns"><b>mdns</b></label>
+								</div>
+							</div>
+							<div class="form-group col-md-4">
+								<div class="custom-control custom-switch">
+									<input
+										type="checkbox"
+										class="custom-control-input"
+										id="switchSettings"
+										onClick="switch_enable('settings');"
+									/>
+									<label class="custom-control-label" for="switchSettings"><b>Settings</b></label>
+								</div>
+							</div>
+							<div class="form-group col-md-4">
+								<div class="custom-control custom-switch">
+									<input
+										type="checkbox"
+										class="custom-control-input"
+										id="switchMonitor"
+										onClick="switch_enable('monitor');"
+									/>
+									<label class="custom-control-label" for="switchMonitor"><b>Monitor</b></label>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="form-group col-md-3 d-flex align-items-center justify-content-end">
+						<button type="button" class="btn btn-primary" id="btnSave" onclick="save();">Save Settings</button>
+					</div>
 				</div>
-				<div class='form-group col-md-3 d-flex align-items-center justify-content-end'>
-						<button type="button" class="btn btn-primary" id="btnSave" onclick='save();'>Save Settings</button>
+			</section>
+			<div
+				class="modal fade"
+				id="helpModal"
+				tabindex="-1"
+				role="dialog"
+				aria-labelledby="helpModalLabel"
+				aria-hidden="true"
+			>
+				<div class="modal-dialog" role="document">
+					<div class="modal-content">
+						<div class="modal-header">
+							<h5 class="modal-title" id="helpModalLabel">Help</h5>
+							<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+								<span aria-hidden="true">&times;</span>
+							</button>
+						</div>
+						<div class="modal-body" id="divHelpBody"></div>
+						<div class="modal-footer">
+							<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+						</div>
+					</div>
 				</div>
 			</div>
-		</section>
-			<div class="modal fade" id="helpModal" tabindex="-1" role="dialog" aria-labelledby="helpModalLabel" aria-hidden="true">
-				<div class="modal-dialog" role="document">
-				  <div class="modal-content">
-					<div class="modal-header">
-					  <h5 class="modal-title" id="helpModalLabel">Help</h5>
-					  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-						<span aria-hidden="true">&times;</span>
-					  </button>
-					</div>
-					<div class="modal-body" id='divHelpBody'>
-					  
-					</div>
-					<div class="modal-footer">
-						<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-					  </div>
-				  </div>
-				</div>
-			  </div>
 			<footer></footer>
 		</div>
 	</body>

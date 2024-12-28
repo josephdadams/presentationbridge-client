@@ -1,28 +1,21 @@
-'use strict';
-const path = require('path');
-const {app, Menu, shell} = require('electron');
-const {
-	is,
-	appMenu,
-	aboutMenuItem,
-	openUrlMenuItem,
-	openNewGitHubIssue,
-	debugInfo
-} = require('electron-util');
-const config = require('./config');
+'use strict'
+const path = require('path')
+const { app, Menu, shell } = require('electron')
+const { is, appMenu, aboutMenuItem, openUrlMenuItem, openNewGitHubIssue, debugInfo } = require('electron-util')
+const config = require('./config')
 
 const showPreferences = () => {
 	// Show the app's preferences here
-};
+}
 
 const helpSubmenu = [
 	openUrlMenuItem({
 		label: 'Website',
-		url: 'https://techministry.blog'
+		url: 'https://techministry.blog',
 	}),
 	openUrlMenuItem({
 		label: 'Source Code',
-		url: 'https://github.com/josephdadams/presentation-bridge-link'
+		url: 'https://github.com/josephdadams/presentation-bridge-link',
 	}),
 	{
 		label: 'Report an Issue…',
@@ -33,62 +26,62 @@ const helpSubmenu = [
 
 ---
 
-${debugInfo()}`;
+${debugInfo()}`
 
 			openNewGitHubIssue({
 				user: 'josephdadams',
 				repo: 'presentation-bridge-client',
-				body
-			});
-		}
-	}
-];
+				body,
+			})
+		},
+	},
+]
 
 if (!is.macos) {
 	helpSubmenu.push(
 		{
-			type: 'separator'
+			type: 'separator',
 		},
 		aboutMenuItem({
 			icon: path.join(__dirname, 'static', 'icon.png'),
-			text: 'Created by Joseph Adams (techministry.blog)'
+			text: 'Created by Joseph Adams (techministry.blog)',
 		})
-	);
+	)
 }
 
 const debugSubmenu = [
 	{
 		label: 'Show Settings',
 		click() {
-			config.openInEditor();
-		}
+			config.openInEditor()
+		},
 	},
 	{
 		label: 'Show App Data',
 		click() {
-			shell.openItem(app.getPath('userData'));
-		}
+			shell.openItem(app.getPath('userData'))
+		},
 	},
 	{
-		type: 'separator'
+		type: 'separator',
 	},
 	{
 		label: 'Delete Settings',
 		click() {
-			config.clear();
-			app.relaunch();
-			app.quit();
-		}
+			config.clear()
+			app.relaunch()
+			app.quit()
+		},
 	},
 	{
 		label: 'Delete App Data',
 		click() {
-			shell.moveItemToTrash(app.getPath('userData'));
-			app.relaunch();
-			app.quit();
-		}
-	}
-];
+			shell.moveItemToTrash(app.getPath('userData'))
+			app.relaunch()
+			app.quit()
+		},
+	},
+]
 
 const macosTemplate = [
 	appMenu([
@@ -96,38 +89,38 @@ const macosTemplate = [
 			label: 'Preferences…',
 			accelerator: 'Command+,',
 			click() {
-				showPreferences();
-			}
-		}
+				showPreferences()
+			},
+		},
 	]),
 	{
 		role: 'fileMenu',
 		submenu: [
 			{
-				label: 'Custom'
+				label: 'Custom',
 			},
 			{
-				type: 'separator'
+				type: 'separator',
 			},
 			{
-				role: 'close'
-			}
-		]
+				role: 'close',
+			},
+		],
 	},
 	{
-		role: 'editMenu'
+		role: 'editMenu',
 	},
 	{
-		role: 'viewMenu'
+		role: 'viewMenu',
 	},
 	{
-		role: 'windowMenu'
+		role: 'windowMenu',
 	},
 	{
 		role: 'help',
-		submenu: helpSubmenu
-	}
-];
+		submenu: helpSubmenu,
+	},
+]
 
 // Linux and Windows
 const otherTemplate = [
@@ -135,45 +128,45 @@ const otherTemplate = [
 		role: 'fileMenu',
 		submenu: [
 			{
-				label: 'Custom'
+				label: 'Custom',
 			},
 			{
-				type: 'separator'
+				type: 'separator',
 			},
 			{
 				label: 'Settings',
 				accelerator: 'Control+,',
 				click() {
-					showPreferences();
-				}
+					showPreferences()
+				},
 			},
 			{
-				type: 'separator'
+				type: 'separator',
 			},
 			{
-				role: 'quit'
-			}
-		]
+				role: 'quit',
+			},
+		],
 	},
 	{
-		role: 'editMenu'
+		role: 'editMenu',
 	},
 	{
-		role: 'viewMenu'
+		role: 'viewMenu',
 	},
 	{
 		role: 'help',
-		submenu: helpSubmenu
-	}
-];
+		submenu: helpSubmenu,
+	},
+]
 
-const template = process.platform === 'darwin' ? macosTemplate : otherTemplate;
+const template = process.platform === 'darwin' ? macosTemplate : otherTemplate
 
 if (is.development) {
 	template.push({
 		label: 'Debug',
-		submenu: debugSubmenu
-	});
+		submenu: debugSubmenu,
+	})
 }
 
-module.exports = Menu.buildFromTemplate(template);
+module.exports = Menu.buildFromTemplate(template)

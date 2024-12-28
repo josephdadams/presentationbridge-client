@@ -1,5 +1,5 @@
-'use strict';
-const Store = require('electron-store');
+'use strict'
+const Store = require('electron-store')
 
 module.exports = new Store({
 	defaults: {
@@ -24,6 +24,6 @@ module.exports = new Store({
 		plugin_companion: true,
 		switch_mdns: true,
 		switch_settings: true,
-		switch_monitor: true
-	}
-});
+		switch_monitor: true,
+	},
+})
